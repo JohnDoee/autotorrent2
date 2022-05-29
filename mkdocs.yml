@@ -1,0 +1,11 @@
+site_name: Autotorrent2
+theme: readthedocs
+
+nav:
+  - Home: index.md
+  - Usage: usage.md
+  - CLI Reference: cli.md
+
+markdown_extensions:
+  - attr_list
+  - mkdocs-click

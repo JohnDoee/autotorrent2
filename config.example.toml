@@ -1,0 +1,112 @@
+# Autotorrent specific settings.
+[autotorrent]
+
+# Path to the internally used sqlite3 database.
+# The path is relative to the config.toml if it is relative.
+database_path = "./autotorrent.db"
+
+# Link type to use.
+# Choices:
+#   soft - use soft links.
+#   hard - use hard links, can only be used on same device.
+#   reflink - use reflink, not supported on all filesystems.
+link_type = "soft"
+
+# List of files to always verify hash on, can be used for files
+# that might have the same size but often vary.
+# It is case-sensitive to some extend, see https://docs.python.org/3/library/fnmatch.html for syntax and description
+always_verify_hash = [
+    "*.nfo",
+    "*.sfv",
+]
+
+# List of paths to scan when running at2 scan
+paths = [
+    "/mnt/sd1/anime/",
+    "/mnt/sd1/tv/",
+    "/mnt/sd*/random/"
+]
+
+# Paths that are the same but mounted different places, useful for e.g. rar2fs.
+# There is no need to include both paths in the path config.
+same_paths = [
+    ["/mnt/sd1/tv/", "/mnt/sd1/rar2fs/"]
+]
+
+## The add_limit settings will choose the smallest one, e.g.
+##  1GB torrent will be 5% which is 53MB
+##  10GB torrent will be 128MB because 5% is 530MB
+
+# Maximum number of bytes missing when matching data and not doing an exact match
+add_limit_size = 128_000_000
+
+# Maximum number of percent missing when matching data and not doing an exact match
+add_limit_percent = 5
+
+# Where to store links, supports the following variables:
+#   client - the key found in the [clients] section, e.g. 'the-transmission' for [clients.the-transmission]
+#   torrent_name - torrent filename, e.g. /path/to/a.good.file.torrent is a.good.file
+store_path = "/mnt/store_path/{client}/{torrent_name}"
+
+# Cache files that are touched, useful with e.g. if the source is a read-only filesystem.
+# Torrent clients need write access to the source data if pieces are missing that overlap with existing files.
+cache_touched_files = false
+
+# Set owner and group for a path after links are created
+# ONLY UNIX
+# rw_file_cache_chown = "1000:1000"
+
+## Config settings for the RW cache if enabled
+
+# TTL in seconds for files in the cache, i.e. it'll be deleted from the cache after X time
+# and the links to files in the cache are replaced with links to the original file
+rw_file_cache_ttl = 86400
+
+# Path to the cache
+rw_file_cache_path = "/mnt/store_path/cache"
+
+# Tell client to fast-resume, not supported in all clients or in all situations.
+fast_resume = true
+
+# List of clients
+# See https://github.com/JohnDoee/libtc#config-file-syntax for syntax (or infer it from reading the examples)
+[clients]
+
+[clients.deluge]
+display_name = "A Deluge"
+client_type = "deluge"
+host = "127.0.0.1"
+port = 58846
+username = "localclient"
+password = "secretpassword"
+session_path = "~/.config/deluge/"
+
+[clients.the-transmission]
+display_name = "Some transmission"
+client_type = "transmission"
+url = "http://127.0.0.1:9091/transmission/rpc"
+session_path = "~/.config/transmission-daemon/"
+
+[clients.another-transmission]
+display_name = "Horse transmission"
+client_type = "transmission"
+url = "http://127.0.0.1:9092/transmission/rpc"
+session_path = "~/.config/transmission-daemon2/"
+
+[clients.rtorrent]
+display_name = "rtorrent"
+client_type = "rtorrent"
+url = "scgi://127.0.0.1:5000"
+session_path = "~/.rtorrent/"
+
+[clients.another-q-bittorrent]
+display_name = "qBittorrent 1"
+client_type = "qbittorrent"
+url = "http://localhost:8080/"
+username = "admin"
+password = "adminadmin"
+session_path = "~/.config/qbittorrent/"
+
+[clients.deluge-url]
+display_name = "Deluge url"
+client_url = "deluge://localclient:da39a3ee5e6b4b0d3255bfef95601890afd80709@127.0.0.1:58846?session_path=%7E/.config/deluge"
