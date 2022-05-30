@@ -5,7 +5,7 @@ import shutil
 import time
 from pathlib import Path
 
-from .utils import create_link, chown
+from .utils import chown, create_link
 
 logger = logging.getLogger(__name__)
 

@@ -73,11 +73,15 @@ class Indexer:
                 f_path_resolved = f_path.resolve()
                 if f_path_resolved != f_path:
                     paths.append((str(f_path_resolved), f.size))
-            insert_queue.append(InsertTorrentFile(torrent.infohash, torrent.name, download_path, paths))
+            insert_queue.append(
+                InsertTorrentFile(torrent.infohash, torrent.name, download_path, paths)
+            )
             if len(insert_queue) > INSERT_QUEUE_MAX_SIZE:
                 self.db.insert_torrent_files_paths(client_name, insert_queue)
                 insert_queue = []
         if insert_queue:
             self.db.insert_torrent_files_paths(client_name, insert_queue)
 
-        self.db.remove_non_existing_infohashes(client_name, [torrent.infohash for torrent in torrents])
+        self.db.remove_non_existing_infohashes(
+            client_name, [torrent.infohash for torrent in torrents]
+        )

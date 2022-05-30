@@ -5,7 +5,12 @@ from collections import namedtuple
 from math import ceil
 from pathlib import Path
 
-from .utils import get_root_of_unsplitable, is_unsplitable, parse_torrent, can_potentially_miss_in_unsplitable
+from .utils import (
+    can_potentially_miss_in_unsplitable,
+    get_root_of_unsplitable,
+    is_unsplitable,
+    parse_torrent,
+)
 
 MatchedFile = namedtuple("MatchedFile", ["torrent_file", "searched_files"])
 MatchResult = namedtuple("MatchResult", ["root_path", "matched_files", "size"])
@@ -19,14 +24,15 @@ logger = logging.getLogger(__name__)
 
 EXACT_MATCH_FACTOR = 0.05
 
+
 def is_relative_to(path, *other):
-    """Return True if the path is relative to another path or False.
-    """
+    """Return True if the path is relative to another path or False."""
     try:
         path.relative_to(*other)
         return True
     except ValueError:
         return False
+
 
 class Matcher:
     def __init__(self, rewriter, db):
@@ -38,12 +44,12 @@ class Matcher:
     ):
         if skip_prefix_path:
             skip_prefix_path = Path(skip_prefix_path.strip(os.sep))
-            filelist = [
-                f
-                for f in filelist
-                if is_relative_to(f.path, skip_prefix_path)
-            ]
-        filelist = sorted(filelist, key=lambda f: (not can_potentially_miss_in_unsplitable(f.path), f.size), reverse=True)
+            filelist = [f for f in filelist if is_relative_to(f.path, skip_prefix_path)]
+        filelist = sorted(
+            filelist,
+            key=lambda f: (not can_potentially_miss_in_unsplitable(f.path), f.size),
+            reverse=True,
+        )
 
         if not filelist:
             logger.warning(
@@ -304,7 +310,8 @@ class Matcher:
             touched_files |= set(found_file_piece_mapping[piece])
 
         return DynamicMatchResult(
-            True, current_missing_size,
+            True,
+            current_missing_size,
             {
                 path: (searched_file and searched_file.to_full_path())
                 for (path, searched_file) in result_mapping.items()

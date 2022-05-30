@@ -1,21 +1,33 @@
+import hashlib
 import logging
 import os
 import shlex
-import hashlib
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import click
 import toml
-from libtc import bdecode, bencode, FailedToExecuteException, parse_clients_from_toml_dict, BTFailure
+from libtc import (
+    BTFailure,
+    FailedToExecuteException,
+    bdecode,
+    bencode,
+    parse_clients_from_toml_dict,
+)
 
 from .db import Database
 from .exceptions import FailedToCreateLinkException
 from .indexer import Indexer
 from .matcher import Matcher
 from .rw_cache import ReadWriteFileCache
-from .utils import PathRewriter, parse_torrent, humanize_bytes, create_link_path, add_status_formatter, FailedToParseTorrentException
-
+from .utils import (
+    FailedToParseTorrentException,
+    PathRewriter,
+    add_status_formatter,
+    create_link_path,
+    humanize_bytes,
+    parse_torrent,
+)
 
 BASE_CONFIG_FILE = """[autotorrent]
 database_path = "./autotorrent.db"
@@ -50,20 +62,24 @@ def parse_config_file(path, utf8_compat_mode=False):
         database_path, utf8_compat_mode=utf8_compat_mode
     )
     parsed_config["indexer"] = indexer = Indexer(db)
-    parsed_config["rewriter"] = rewriter = PathRewriter(parsed_config.get("same_paths", []))
+    parsed_config["rewriter"] = rewriter = PathRewriter(
+        parsed_config.get("same_paths", [])
+    )
     parsed_config["matcher"] = matcher = Matcher(rewriter, db)
 
     rw_file_cache_chown = parsed_config.get("rw_file_cache_chown")
 
     parsed_config["rw_cache"] = rw_cache = ReadWriteFileCache(
-        parsed_config["rw_file_cache_path"], parsed_config["rw_file_cache_ttl"], rw_file_cache_chown
+        parsed_config["rw_file_cache_path"],
+        parsed_config["rw_file_cache_ttl"],
+        rw_file_cache_chown,
     )
 
     return parsed_config
 
 
 def validate_config_path(ctx, param, value):
-    if value is not None: # check given path first
+    if value is not None:  # check given path first
         config_path = Path(value)
         if not config_path.is_file():
             raise click.BadParameter(f"File {value!r} does not exist or is not a file.")
@@ -121,8 +137,7 @@ def validate_config_path(ctx, param, value):
 def cli(ctx, config, verbose, utf8_compat_mode):
     if verbose:
         logging.basicConfig(
-            level=logging.DEBUG,
-            format="%(levelname)s:%(name)s:%(lineno)d:%(message)s"
+            level=logging.DEBUG, format="%(levelname)s:%(name)s:%(lineno)d:%(message)s"
         )
     ctx.ensure_object(dict)
     ctx.obj.update(parse_config_file(config, utf8_compat_mode=utf8_compat_mode))
@@ -136,7 +151,7 @@ def cli(ctx, config, verbose, utf8_compat_mode):
     flag_value=True,
     default=False,
 )
-@click.option('-d', '--depth', type=int, default=0)
+@click.option("-d", "--depth", type=int, default=0)
 @click.argument("path", nargs=-1, type=click.Path(exists=True))
 @click.pass_context
 def ls(ctx, summary, depth, path):
@@ -157,8 +172,15 @@ def ls(ctx, summary, depth, path):
         for path in paths:
             p = Path(os.path.abspath(path))
             map_result = matcher.map_path_to_clients(p)
-            percent = map_result.total_size and int((map_result.seeded_size / map_result.total_size) * 100) or 0
-            if map_result.total_size == map_result.seeded_size and map_result.total_size > 0:
+            percent = (
+                map_result.total_size
+                and int((map_result.seeded_size / map_result.total_size) * 100)
+                or 0
+            )
+            if (
+                map_result.total_size == map_result.seeded_size
+                and map_result.total_size > 0
+            ):
                 color = "green"
             elif map_result.seeded_size:
                 color = "yellow"
@@ -173,7 +195,9 @@ def ls(ctx, summary, depth, path):
             stats["total_size"] += map_result.total_size
             stats["total_seed_size"] += map_result.seeded_size
 
-            click.echo(f"[{click.style((str(percent) + '%').rjust(4), fg=color)}] {os.fsencode(path).decode(errors='replace')}")
+            click.echo(
+                f"[{click.style((str(percent) + '%').rjust(4), fg=color)}] {os.fsencode(path).decode(errors='replace')}"
+            )
 
     def dive_paths(paths, depth):
         if depth <= 0:
@@ -197,7 +221,9 @@ def ls(ctx, summary, depth, path):
         click.echo(f"Number of paths: {stats['count']}")
         click.echo(f"Total size {humanize_bytes(stats['total_size'])}")
         click.echo(f"Total seed size: {humanize_bytes(stats['total_seed_size'])}")
-        click.echo(f"Total unseeded size: {humanize_bytes(stats['total_size'] - stats['total_seed_size'])}")
+        click.echo(
+            f"Total unseeded size: {humanize_bytes(stats['total_size'] - stats['total_seed_size'])}"
+        )
 
 
 @cli.command(help="Find unseeded paths.")
@@ -208,7 +234,6 @@ def ls(ctx, summary, depth, path):
     flag_value=True,
     default=False,
 )
-
 @click.argument("path", nargs=-1, type=click.Path(exists=True))
 @click.pass_context
 def find_unseeded(ctx, escape_paths, path):
@@ -224,33 +249,33 @@ def find_unseeded(ctx, escape_paths, path):
         map_result = matcher.map_path_to_clients(p)
         path_seeds = {}
         for f, mapped_file in map_result.files.items():
-          if f.is_symlink():
-            continue
-          ff = f
-          is_seeded = len(mapped_file.clients) > 0
-          while p in ff.parents or p == ff:
-            if not is_seeded and ff in path_seeds:
-              break
-            if path_seeds.get(ff):
-              break
-            path_seeds[ff] = is_seeded
-            ff = ff.parent
-        only_unseeded_paths = set([f for (f, is_seeded) in path_seeds.items() if not is_seeded])
+            if f.is_symlink():
+                continue
+            ff = f
+            is_seeded = len(mapped_file.clients) > 0
+            while p in ff.parents or p == ff:
+                if not is_seeded and ff in path_seeds:
+                    break
+                if path_seeds.get(ff):
+                    break
+                path_seeds[ff] = is_seeded
+                ff = ff.parent
+        only_unseeded_paths = set(
+            [f for (f, is_seeded) in path_seeds.items() if not is_seeded]
+        )
         base_unseeded_paths = []
         for f in only_unseeded_paths:
-          if f.parent in only_unseeded_paths:
-            continue
-          base_unseeded_paths.append(f)
+            if f.parent in only_unseeded_paths:
+                continue
+            base_unseeded_paths.append(f)
         for unseeded_path in base_unseeded_paths:
-          unseeded_path = os.path.abspath(unseeded_path)
-          if escape_paths:
-            unseeded_path = shlex.quote(unseeded_path)
-          click.echo(unseeded_path)
+            unseeded_path = os.path.abspath(unseeded_path)
+            if escape_paths:
+                unseeded_path = shlex.quote(unseeded_path)
+            click.echo(unseeded_path)
 
 
-@cli.command(
-    help="Checks if the config file exists and is loadable."
-)
+@cli.command(help="Checks if the config file exists and is loadable.")
 @click.pass_context
 def check_config(ctx):
     click.echo("We made it this far without a crash so the config must be loadable.")
@@ -290,7 +315,9 @@ def rm(ctx, client, path):
         quit()
 
     for client_name, infohashes in infohashes_to_remove.items():
-        click.echo(f"Removing {len(infohashes)} torrent{len(infohashes) != 1 and 's' or ''} from {client_name}")
+        click.echo(
+            f"Removing {len(infohashes)} torrent{len(infohashes) != 1 and 's' or ''} from {client_name}"
+        )
         client = clients[client_name]
         for infohash in infohashes:
             client.remove(infohash)
@@ -325,11 +352,7 @@ def rm(ctx, client, path):
     flag_value=True,
     default=False,
 )
-@click.option(
-    "--chown",
-    help="Chown the data folder when creating links.",
-    type=str
-)
+@click.option("--chown", help="Chown the data folder when creating links.", type=str)
 @click.option(
     "--dry-run",
     help="Do not actually create links and add the torrents, just check what would happen.",
@@ -339,11 +362,22 @@ def rm(ctx, client, path):
 @click.option(
     "--move-torrent-on-add",
     help="Move the torrent to this path after it has been added successfully to the client.",
-    type=click.Path()
+    type=click.Path(),
 )
 @click.argument("torrent", nargs=-1, type=click.Path(exists=True, dir_okay=False))
-@click.pass_context # TODO: allow feedback while running
-def add(ctx, client, exact, hash_probe, hash_size, torrent, print_summary, chown, dry_run, move_torrent_on_add):
+@click.pass_context  # TODO: allow feedback while running
+def add(
+    ctx,
+    client,
+    exact,
+    hash_probe,
+    hash_size,
+    torrent,
+    print_summary,
+    chown,
+    dry_run,
+    move_torrent_on_add,
+):
     torrent_paths = torrent
     client_name = client
     db = ctx.obj["db"]
@@ -361,7 +395,9 @@ def add(ctx, client, exact, hash_probe, hash_size, torrent, print_summary, chown
         click.echo(f"Client {client_name} not found found")
         quit(1)
 
-    click.echo(f"Matching {len(torrent_paths)} torrent{len(torrent_paths) != 1 and 's' or ''}")
+    click.echo(
+        f"Matching {len(torrent_paths)} torrent{len(torrent_paths) != 1 and 's' or ''}"
+    )
 
     stats = {"seeded": 0, "added": 0, "exists": 0, "failed": 0, "missing_files": 0}
     for torrent_path in torrent_paths:
@@ -387,14 +423,18 @@ def add(ctx, client, exact, hash_probe, hash_size, torrent, print_summary, chown
             if torrent_root_path:
                 hash_verify_result, hash_touch_result = torrent.verify_hash(
                     ctx.obj["always_verify_hash"],
-                    {tf.path: torrent_root_path / tf.path for tf in torrent.filelist}
+                    {tf.path: torrent_root_path / tf.path for tf in torrent.filelist},
                 )
-                if any(tf for (tf, tf_result) in hash_verify_result.items() if tf_result != "hash-success"):
+                if any(
+                    tf
+                    for (tf, tf_result) in hash_verify_result.items()
+                    if tf_result != "hash-success"
+                ):
                     torrent_root_path = None
                     found_bad_hash = True
         else:
             match_result = matcher.match_files_dynamic(
-                torrent_data, # TODO: double parsed here
+                torrent_data,  # TODO: double parsed here
                 match_hash_size=hash_size,
                 add_limit_size=ctx.obj["add_limit_size"],
                 add_limit_percent=ctx.obj["add_limit_percent"],
@@ -402,22 +442,38 @@ def add(ctx, client, exact, hash_probe, hash_size, torrent, print_summary, chown
             )
             missing_size = match_result.missing_size
             if match_result.success:
-                hash_verify_result, hash_touch_result = torrent.verify_hash(ctx.obj["always_verify_hash"], match_result.matched_files)
-                failed_torrent_files = {tf.path: tf for (tf, tf_result) in hash_verify_result.items() if tf_result == "hash-failed"}
+                hash_verify_result, hash_touch_result = torrent.verify_hash(
+                    ctx.obj["always_verify_hash"], match_result.matched_files
+                )
+                failed_torrent_files = {
+                    tf.path: tf
+                    for (tf, tf_result) in hash_verify_result.items()
+                    if tf_result == "hash-failed"
+                }
                 missing_size += sum(tf.size for tf in failed_torrent_files.values())
                 max_missing_size = min(
-                    ctx.obj["add_limit_size"], (ctx.obj["add_limit_percent"] * torrent.size) // 100
+                    ctx.obj["add_limit_size"],
+                    (ctx.obj["add_limit_percent"] * torrent.size) // 100,
                 )
                 if max_missing_size > missing_size:
-                    if ctx.obj['cache_touched_files']:
+                    if ctx.obj["cache_touched_files"]:
                         touched_torrent_paths = set(match_result.touched_files) | {
-                            tf.path for (tf, tf_result) in hash_touch_result.items() if (tf_result == 'touch-success' or tf_result == 'touch-failed' and tf.path not in failed_torrent_files)
+                            tf.path
+                            for (tf, tf_result) in hash_touch_result.items()
+                            if (
+                                tf_result == "touch-success"
+                                or tf_result == "touch-failed"
+                                and tf.path not in failed_torrent_files
+                            )
                         }
                     else:
                         touched_torrent_paths = set()
 
                     link_file_mapping = {}
-                    for torrent_data_path, actual_path in match_result.matched_files.items():
+                    for (
+                        torrent_data_path,
+                        actual_path,
+                    ) in match_result.matched_files.items():
                         if not actual_path:
                             continue
                         if torrent_data_path in failed_torrent_files:
@@ -430,14 +486,28 @@ def add(ctx, client, exact, hash_probe, hash_size, torrent, print_summary, chown
                         link_file_mapping[torrent_data_path] = (action, actual_path)
 
                     try:
-                        create_link_result = create_link_path(ctx.obj["store_path"], link_file_mapping, client_name, torrent_path, {}, ctx.obj["link_type"], rw_cache=rw_cache, chown_str=chown, dry_run=dry_run) # TODO: feedback that things take time when caching
+                        create_link_result = create_link_path(
+                            ctx.obj["store_path"],
+                            link_file_mapping,
+                            client_name,
+                            torrent_path,
+                            {},
+                            ctx.obj["link_type"],
+                            rw_cache=rw_cache,
+                            chown_str=chown,
+                            dry_run=dry_run,
+                        )  # TODO: feedback that things take time when caching
                         if dry_run:
-                            torrent_root_path = '/tmp/autotorrent_dry_run'
+                            torrent_root_path = "/tmp/autotorrent_dry_run"
                         else:
                             torrent_root_path = create_link_result.data_path
                     except FailedToCreateLinkException:
                         stats["exists"] += 1
-                        add_status_formatter("exists", torrent_path, "the link folder already exist this torrent is not seeded by the client")
+                        add_status_formatter(
+                            "exists",
+                            torrent_path,
+                            "the link folder already exist this torrent is not seeded by the client",
+                        )
                         continue
                 else:
                     found_bad_hash = True
@@ -448,9 +518,15 @@ def add(ctx, client, exact, hash_probe, hash_size, torrent, print_summary, chown
                 stats["added"] += 1
             else:
                 try:
-                    client.add(torrent_data, torrent_root_path, fast_resume=ctx.obj["fast_resume"])
+                    client.add(
+                        torrent_data,
+                        torrent_root_path,
+                        fast_resume=ctx.obj["fast_resume"],
+                    )
                 except FailedToExecuteException:
-                    add_status_formatter("failed", torrent_path, "failed to send torrent to client")
+                    add_status_formatter(
+                        "failed", torrent_path, "failed to send torrent to client"
+                    )
                     stats["failed"] += 1
                 else:
                     add_status_formatter("added", torrent_path, "added")
@@ -463,7 +539,9 @@ def add(ctx, client, exact, hash_probe, hash_size, torrent, print_summary, chown
         else:
             percentage_info = None
             if missing_size is not None:
-                percent = torrent.size and int((1 - (missing_size / torrent.size)) * 100) or 0
+                percent = (
+                    torrent.size and int((1 - (missing_size / torrent.size)) * 100) or 0
+                )
                 if missing_size < torrent.size:
                     color = "yellow"
                     if percent == 0:
@@ -472,10 +550,14 @@ def add(ctx, client, exact, hash_probe, hash_size, torrent, print_summary, chown
                         percent = 99
                 else:
                     color = "red"
-                percentage_info = f"with {click.style((str(percent) + '%').rjust(3), fg=color)} found"
-            add_status_formatter("missing_files", torrent_path,
-                f"is missing data{percentage_info and ' ' + percentage_info or ''}" +
-                (found_bad_hash and " due to bad file hashes" or "")
+                percentage_info = (
+                    f"with {click.style((str(percent) + '%').rjust(3), fg=color)} found"
+                )
+            add_status_formatter(
+                "missing_files",
+                torrent_path,
+                f"is missing data{percentage_info and ' ' + percentage_info or ''}"
+                + (found_bad_hash and " due to bad file hashes" or ""),
             )
             stats["missing_files"] += 1
             continue
@@ -496,12 +578,17 @@ def add(ctx, client, exact, hash_probe, hash_size, torrent, print_summary, chown
 def cleanup_cache(ctx):
     rw_cache = ctx.obj["rw_cache"]
     removed_paths = rw_cache.cleanup_cache()
-    click.echo(f"Done cleaning up cache, removed {len(removed_paths)} path{len(removed_paths) != 1 and 's' or ''}")
+    click.echo(
+        f"Done cleaning up cache, removed {len(removed_paths)} path{len(removed_paths) != 1 and 's' or ''}"
+    )
 
 
 @cli.command(help="Scan your local paths files.")
 @click.option(
-    "-p", "--path", help="Partial scan a given path, does not remove removed files from the database.", type=click.Path(exists=True)
+    "-p",
+    "--path",
+    help="Partial scan a given path, does not remove removed files from the database.",
+    type=click.Path(exists=True),
 )
 @click.pass_context
 def scan(ctx, path):
@@ -567,17 +654,13 @@ def test_connection(ctx, client):
     with ThreadPoolExecutor(max_workers=8) as executor:
         futures = []
         for client in clients:
-            futures.append((client, executor.submit(client['client'].test_connection)))
+            futures.append((client, executor.submit(client["client"].test_connection)))
 
         for client, future in futures:
             if future.result():
-                click.echo(
-                    f"{click.style('OK ', fg='green')} {client['display_name']}"
-                )
+                click.echo(f"{click.style('OK ', fg='green')} {client['display_name']}")
             else:
-                click.echo(
-                    f"{click.style('BAD', fg='red')} {client['display_name']}"
-                )
+                click.echo(f"{click.style('BAD', fg='red')} {client['display_name']}")
 
 
 # @cli.command(help="Remove unseeded folders from store paths")

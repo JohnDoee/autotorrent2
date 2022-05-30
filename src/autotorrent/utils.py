@@ -10,8 +10,8 @@ from collections import namedtuple
 from fnmatch import fnmatch
 from pathlib import Path, PurePath
 
-import click
 import chardet
+import click
 from libtc import TorrentProblems
 
 from .exceptions import FailedToCreateLinkException, FailedToParseTorrentException
@@ -64,7 +64,7 @@ UNSPLITABLE_FILE_EXTENSIONS = [
 #     INVALID_BASE_NAMES = INVALID_BASE_NAMES_NIX
 
 PIECE_SIZE = 20
-HASHER_READ_BLOCK_SIZE = 2 ** 18
+HASHER_READ_BLOCK_SIZE = 2**18
 
 AUTOTORRENT_CONF_NAME = "autotorrent.json"
 STORE_DATA_PATH = "data"
@@ -137,7 +137,11 @@ def can_potentially_miss_in_unsplitable(filepath):
     Checks if a file can be potentially missed in an unsplitable release
     while the release is still usable.
     """
-    return re.match(r"^((samples?)|(proofs?)|((vob)?sub(title)?s?))$", filepath.parent.name, re.IGNORECASE,)
+    return re.match(
+        r"^((samples?)|(proofs?)|((vob)?sub(title)?s?))$",
+        filepath.parent.name,
+        re.IGNORECASE,
+    )
 
 
 def get_root_of_unsplitable(path):
@@ -347,8 +351,12 @@ class Torrent(
         pieces_to_verify = set()
         missing_pieces = set()
         for torrent_file in self.filelist:
-            piece_calculation = torrent_file.pieces.calculate_offsets(torrent_file.size, is_last_file=torrent_file.is_last_file)
-            torrent_file_pieces = set(range(piece_calculation.start_piece, piece_calculation.end_piece + 1))
+            piece_calculation = torrent_file.pieces.calculate_offsets(
+                torrent_file.size, is_last_file=torrent_file.is_last_file
+            )
+            torrent_file_pieces = set(
+                range(piece_calculation.start_piece, piece_calculation.end_piece + 1)
+            )
             for pattern in fnmatches:
                 if fnmatch(torrent_file.path.name, pattern):
                     pieces_to_verify |= torrent_file_pieces
@@ -360,10 +368,21 @@ class Torrent(
         piece_status = {}
         file_piece_mapping = {}
         file_has_inner_pieces = {}
-        hasher, hasher_piece, data_left, fp, skip_to_piece = None, None, None, None, None
+        hasher, hasher_piece, data_left, fp, skip_to_piece = (
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
         for torrent_file in self.filelist:
-            piece_calculation = torrent_file.pieces.calculate_offsets(torrent_file.size, is_last_file=torrent_file.is_last_file)
-            file_has_inner_pieces[torrent_file] = piece_calculation.first_complete_piece <= piece_calculation.last_complete_piece
+            piece_calculation = torrent_file.pieces.calculate_offsets(
+                torrent_file.size, is_last_file=torrent_file.is_last_file
+            )
+            file_has_inner_pieces[torrent_file] = (
+                piece_calculation.first_complete_piece
+                <= piece_calculation.last_complete_piece
+            )
             full_path = file_mapping[torrent_file.path]
             if not full_path:
                 piece_status[piece_calculation.start_piece] = None
@@ -371,7 +390,9 @@ class Torrent(
                 skip_to_piece = piece_calculation.end_piece + 1
                 continue
 
-            for piece_index, piece in enumerate(piece_calculation.pieces, piece_calculation.start_piece):
+            for piece_index, piece in enumerate(
+                piece_calculation.pieces, piece_calculation.start_piece
+            ):
                 file_piece_mapping.setdefault(piece_index, []).append(torrent_file)
                 if skip_to_piece is not None and skip_to_piece > piece_index:
                     continue
@@ -383,19 +404,24 @@ class Torrent(
                     continue
 
                 if piece_index > piece_calculation.start_piece:
-                    expected_tell = piece_calculation.start_offset + ((piece_index - piece_calculation.first_complete_piece) * self.piece_length)
+                    expected_tell = piece_calculation.start_offset + (
+                        (piece_index - piece_calculation.first_complete_piece)
+                        * self.piece_length
+                    )
                 else:
                     expected_tell = 0
 
                 if not fp:
-                    fp = full_path.open('rb')
+                    fp = full_path.open("rb")
                     if expected_tell:
                         fp.seek(expected_tell)
 
                 if hasher_piece != piece_index:
-                    hasher = hashlib.new('sha1', usedforsecurity=False)
+                    hasher = hashlib.new("sha1", usedforsecurity=False)
                     hasher_piece = piece_index
-                    data_left = min(self.size - (piece_index * self.piece_length), self.piece_length)
+                    data_left = min(
+                        self.size - (piece_index * self.piece_length), self.piece_length
+                    )
                     if fp.tell() != expected_tell:
                         fp.seek(expected_tell)
 
@@ -419,24 +445,65 @@ class Torrent(
         for torrent_file in self.filelist:
             for pattern in fnmatches:
                 if fnmatch(torrent_file.path.name, pattern):
-                    piece_calculation = torrent_file.pieces.calculate_offsets(torrent_file.size, is_last_file=torrent_file.is_last_file)
+                    piece_calculation = torrent_file.pieces.calculate_offsets(
+                        torrent_file.size, is_last_file=torrent_file.is_last_file
+                    )
 
-                    inner_piece_status = [piece_status.get(p) for p in range(piece_calculation.first_complete_piece, piece_calculation.last_complete_piece + 1)]
+                    inner_piece_status = [
+                        piece_status.get(p)
+                        for p in range(
+                            piece_calculation.first_complete_piece,
+                            piece_calculation.last_complete_piece + 1,
+                        )
+                    ]
                     edge_piece_status = []
-                    if piece_calculation.start_piece != piece_calculation.first_complete_piece:
-                        edge_piece_status.append(piece_status.get(piece_calculation.start_piece))
+                    if (
+                        piece_calculation.start_piece
+                        != piece_calculation.first_complete_piece
+                    ):
+                        edge_piece_status.append(
+                            piece_status.get(piece_calculation.start_piece)
+                        )
                         # check other files in same piece
-                    if piece_calculation.end_piece != piece_calculation.last_complete_piece:
-                        edge_piece_status.append(piece_status.get(piece_calculation.end_piece))
+                    if (
+                        piece_calculation.end_piece
+                        != piece_calculation.last_complete_piece
+                    ):
+                        edge_piece_status.append(
+                            piece_status.get(piece_calculation.end_piece)
+                        )
 
-                    if inner_piece_status and all(inner_piece_status) and all([p != False for p in edge_piece_status]):
-                        file_status_mapping[torrent_file] = 'hash-success'
+                    if (
+                        inner_piece_status
+                        and all(inner_piece_status)
+                        and all([p != False for p in edge_piece_status])
+                    ):
+                        file_status_mapping[torrent_file] = "hash-success"
                     elif not inner_piece_status and all(edge_piece_status):
-                        file_status_mapping[torrent_file] = 'hash-success'
-                    elif inner_piece_status and all(inner_piece_status) and all([file_has_inner_pieces[tf] for tf in file_piece_mapping[piece_calculation.start_piece]]) and all([file_has_inner_pieces[tf] for tf in file_piece_mapping[piece_calculation.end_piece]]):
-                        file_status_mapping[torrent_file] = 'hash-success'
+                        file_status_mapping[torrent_file] = "hash-success"
+                    elif (
+                        inner_piece_status
+                        and all(inner_piece_status)
+                        and all(
+                            [
+                                file_has_inner_pieces[tf]
+                                for tf in file_piece_mapping[
+                                    piece_calculation.start_piece
+                                ]
+                            ]
+                        )
+                        and all(
+                            [
+                                file_has_inner_pieces[tf]
+                                for tf in file_piece_mapping[
+                                    piece_calculation.end_piece
+                                ]
+                            ]
+                        )
+                    ):
+                        file_status_mapping[torrent_file] = "hash-success"
                     else:
-                        file_status_mapping[torrent_file] = 'hash-failed'
+                        file_status_mapping[torrent_file] = "hash-failed"
 
                     break
 
@@ -444,9 +511,20 @@ class Torrent(
         for torrent_file in self.filelist:
             # if hash-failed or any pieces are failed, then it is touch-failed
             # if any of the files in any of the pieces are missing, then it is touched-success
-            piece_calculation = torrent_file.pieces.calculate_offsets(torrent_file.size, is_last_file=torrent_file.is_last_file)
-            file_piece_results = {piece_status[p] for p in range(piece_calculation.start_piece, piece_calculation.end_piece + 1) if p in piece_status}
-            if file_status_mapping.get(torrent_file) == 'hash-failed' or False in file_piece_results:
+            piece_calculation = torrent_file.pieces.calculate_offsets(
+                torrent_file.size, is_last_file=torrent_file.is_last_file
+            )
+            file_piece_results = {
+                piece_status[p]
+                for p in range(
+                    piece_calculation.start_piece, piece_calculation.end_piece + 1
+                )
+                if p in piece_status
+            }
+            if (
+                file_status_mapping.get(torrent_file) == "hash-failed"
+                or False in file_piece_results
+            ):
                 file_touch_status_mapping[torrent_file] = "touch-failed"
             elif None in file_piece_results:
                 file_touch_status_mapping[torrent_file] = "touch-success"
@@ -454,13 +532,15 @@ class Torrent(
         return file_status_mapping, file_touch_status_mapping
 
 
-TorrentFile = namedtuple("TorrentFile", ["path", "size", "pieces", "is_last_file"], defaults=(False, ))
+TorrentFile = namedtuple(
+    "TorrentFile", ["path", "size", "pieces", "is_last_file"], defaults=(False,)
+)
 
 
 def parse_torrent(
     torrent, utf8_compat_mode=False
 ):  # TODO: validate path, add support for transmission rewrite?
-    if b'info' not in torrent:
+    if b"info" not in torrent:
         raise FailedToParseTorrentException("Info dict not found")
     info = torrent[b"info"]
     name = cleanup_torrent_path_segment(
@@ -494,21 +574,32 @@ def parse_torrent(
                 )
 
             path = os.path.sep.join([name] + path)
-            filelist.append(TorrentFile(PurePath(path), f[b"length"], pieces[length:], is_last_file=(i == last_i)))
+            filelist.append(
+                TorrentFile(
+                    PurePath(path),
+                    f[b"length"],
+                    pieces[length:],
+                    is_last_file=(i == last_i),
+                )
+            )
             length += f[b"length"]
     else:
-        filelist.append(TorrentFile(PurePath(name), info[b"length"], pieces, is_last_file=True))
+        filelist.append(
+            TorrentFile(PurePath(name), info[b"length"], pieces, is_last_file=True)
+        )
         length += info[b"length"]
 
     filelist_mapped = {f.path: f for f in filelist}
     return Torrent(name, length, info[b"piece length"], filelist, filelist_mapped)
 
 
-CreateLinkResult = namedtuple("CreateLinkResult", ["path", "torrent_path", "config_path", "data_path"])
+CreateLinkResult = namedtuple(
+    "CreateLinkResult", ["path", "torrent_path", "config_path", "data_path"]
+)
 
 
 def _parse_chown(chown):
-    chown = chown.split(':')
+    chown = chown.split(":")
     chown_user = chown[0] or None
     if len(chown) > 1:
         chown_group = chown[1] or None
@@ -530,6 +621,7 @@ def _parse_chown(chown):
             gid = -1
     return uid, gid
 
+
 def chown(chown_str, path):
     chown_user, chown_group = _parse_chown(chown_str)
     if chown_user == -1 and chown_group == -1:
@@ -550,6 +642,7 @@ def chown(chown_str, path):
     for p in walk(path):
         logger.debug(f"Changing permission for {p}")
         os.chown(p, chown_user, chown_group, follow_symlinks=False)
+
 
 def create_link_path(
     store_path_template,
@@ -592,18 +685,20 @@ def create_link_path(
     for torrent_path, (action, actual_path) in file_mapping.items():
         link_path = data_store_path / torrent_path
         link_path.parent.mkdir(exist_ok=True, parents=True)
-        if action == 'link' or action == 'cache_link':
-            if rw_cache and action == 'cache_link':
+        if action == "link" or action == "cache_link":
+            if rw_cache and action == "cache_link":
                 actual_path = rw_cache.cache_file(actual_path, link_path, link_type)
 
             create_link(actual_path, link_path, link_type)
-        elif action == 'copy':
+        elif action == "copy":
             shutil.copyfile(actual_path, link_path)
 
     if chown_str:
         chown(chown_str, data_store_path)
 
-    return CreateLinkResult(store_path, torrent_store_path, autotorrent_store_path, data_store_path)
+    return CreateLinkResult(
+        store_path, torrent_store_path, autotorrent_store_path, data_store_path
+    )
 
 
 def create_link(actual_path, link_path, link_type):
@@ -693,7 +788,9 @@ def _reflink_darwin(self, path, destination):
     )
 
 
-def humanize_bytes(bytes, precision=1): # All credit goes to: http://code.activestate.com/recipes/577081-humanized-representation-of-a-number-of-bytes/
+def humanize_bytes(
+    bytes, precision=1
+):  # All credit goes to: http://code.activestate.com/recipes/577081-humanized-representation-of-a-number-of-bytes/
     """Return a humanized string representation of a number of bytes.
     >>> humanize_bytes(1)
     '1 byte'
@@ -713,19 +810,19 @@ def humanize_bytes(bytes, precision=1): # All credit goes to: http://code.active
     '1.3 GB'
     """
     abbrevs = (
-        (1<<50, 'PB'),
-        (1<<40, 'TB'),
-        (1<<30, 'GB'),
-        (1<<20, 'MB'),
-        (1<<10, 'kB'),
-        (1, 'bytes')
+        (1 << 50, "PB"),
+        (1 << 40, "TB"),
+        (1 << 30, "GB"),
+        (1 << 20, "MB"),
+        (1 << 10, "kB"),
+        (1, "bytes"),
     )
     if bytes == 1:
-        return '1 byte'
+        return "1 byte"
     for factor, suffix in abbrevs:
         if bytes >= factor:
             break
-    return '%.*f %s' % (precision, bytes / factor, suffix)
+    return "%.*f %s" % (precision, bytes / factor, suffix)
 
 
 def add_status_formatter(status, torrent_path, message):

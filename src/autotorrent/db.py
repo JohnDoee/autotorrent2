@@ -14,7 +14,10 @@ SeededFile = namedtuple(
     "SeededFile", ["name", "path", "download_path", "infohash", "client", "size"]
 )
 
-InsertTorrentFile = namedtuple("InsertTorrentFile", ["infohash", "name", "download_path", "paths"])
+InsertTorrentFile = namedtuple(
+    "InsertTorrentFile", ["infohash", "name", "download_path", "paths"]
+)
+
 
 class SearchedFile(
     namedtuple(
@@ -193,19 +196,31 @@ class Database:
     def insert_torrent_files_paths(self, client, insert_torrent_files):
         c = self.db.cursor()
 
-        self.remove_torrent_files(client, [itf.infohash for itf in insert_torrent_files])
+        self.remove_torrent_files(
+            client, [itf.infohash for itf in insert_torrent_files]
+        )
         self.commit()
 
         c.executemany(
             "INSERT OR IGNORE INTO client_torrents (name, download_path, infohash, client) VALUES (?, ?, ?, ?)",
-            [(itf.name, decode_str(itf.download_path, try_fix=self.utf8_compat_mode), itf.infohash, client) for itf in insert_torrent_files]
+            [
+                (
+                    itf.name,
+                    decode_str(itf.download_path, try_fix=self.utf8_compat_mode),
+                    itf.infohash,
+                    client,
+                )
+                for itf in insert_torrent_files
+            ],
         )
         self.commit()
 
-        infohash_id_mapping = dict(c.execute(
-            f"SELECT infohash, id FROM client_torrents WHERE client = ? AND infohash IN ({','.join(['?'] * len(insert_torrent_files))})",
-            (client, *[itf.infohash for itf in insert_torrent_files])
-        ).fetchall())
+        infohash_id_mapping = dict(
+            c.execute(
+                f"SELECT infohash, id FROM client_torrents WHERE client = ? AND infohash IN ({','.join(['?'] * len(insert_torrent_files))})",
+                (client, *[itf.infohash for itf in insert_torrent_files]),
+            ).fetchall()
+        )
 
         for itf in insert_torrent_files:
             insert_args = []
@@ -237,18 +252,26 @@ class Database:
 
     def remove_torrent_files(self, client, infohashes):
         c = self.db.cursor()
-        for id_, in c.execute(f"SELECT id FROM client_torrents WHERE client = ? AND infohash IN ({','.join(['?'] * len(infohashes))})", (
-            client, *infohashes
-        )):
+        for (id_,) in c.execute(
+            f"SELECT id FROM client_torrents WHERE client = ? AND infohash IN ({','.join(['?'] * len(infohashes))})",
+            (client, *infohashes),
+        ):
             c.execute("DELETE FROM client_torrents WHERE id = ?", (id_,))
             c.execute("DELETE FROM client_torrentfiles WHERE torrent_id = ?", (id_,))
         self.db.commit()
 
     def remove_non_existing_infohashes(self, client, infohashes):
         c = self.db.cursor()
-        self.remove_torrent_files(client, [infohash for infohash, in c.execute(f"SELECT infohash FROM client_torrents WHERE client = ? AND infohash NOT IN ({','.join(['?'] * len(infohashes))})", (
-            client, *infohashes
-        )).fetchall()])
+        self.remove_torrent_files(
+            client,
+            [
+                infohash
+                for infohash, in c.execute(
+                    f"SELECT infohash FROM client_torrents WHERE client = ? AND infohash NOT IN ({','.join(['?'] * len(infohashes))})",
+                    (client, *infohashes),
+                ).fetchall()
+            ],
+        )
 
     def get_seeded_paths(self, paths):
         c = self.db.cursor()
