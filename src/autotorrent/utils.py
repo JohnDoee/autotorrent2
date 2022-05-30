@@ -606,7 +606,7 @@ def create_link(actual_path, link_path, link_type):
     if link_type == "soft":
         link_path.symlink_to(actual_path)
     elif link_type == "hard":
-        link_path.link_to(actual_path)
+        os.link(actual_path, link_path)
     elif link_type == "reflink":
         reflink(str(link_path), str(actual_path))
 
