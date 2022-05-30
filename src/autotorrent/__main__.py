@@ -50,7 +50,7 @@ def parse_config_file(path, utf8_compat_mode=False):
         database_path, utf8_compat_mode=utf8_compat_mode
     )
     parsed_config["indexer"] = indexer = Indexer(db)
-    parsed_config["rewriter"] = rewriter = PathRewriter(parsed_config["same_paths"])
+    parsed_config["rewriter"] = rewriter = PathRewriter(parsed_config.get("same_paths", []))
     parsed_config["matcher"] = matcher = Matcher(rewriter, db)
 
     rw_file_cache_chown = parsed_config.get("rw_file_cache_chown")
