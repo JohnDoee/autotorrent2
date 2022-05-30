@@ -212,6 +212,8 @@ def validate_path(path):
 
 
 def cleanup_torrent_path_segment(path_segment):  # TODO: more here?
+    if not path_segment:
+        return path_segment
     return path_segment.strip("/")
 
 
@@ -478,6 +480,8 @@ def parse_torrent(
                 for p in f[b"path"]
                 if p
             ]
+            if not all(path):
+                raise FailedToParseTorrentException("Broken path elements")
             if not path:
                 raise FailedToParseTorrentException("Empty path")
             if any(p is None for p in path):
