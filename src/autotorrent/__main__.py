@@ -28,6 +28,7 @@ from .utils import (
     humanize_bytes,
     parse_torrent,
 )
+from .__version__ import __version__
 
 BASE_CONFIG_FILE = """[autotorrent]
 database_path = "./autotorrent.db"
@@ -140,6 +141,7 @@ def validate_config_path(ctx, param, value):
     flag_value=True,
     default=False,
 )
+@click.version_option(__version__)
 @click.pass_context
 def cli(ctx, config, verbose, utf8_compat_mode):
     if verbose:
