@@ -69,11 +69,18 @@ def parse_config_file(path, utf8_compat_mode=False):
 
     rw_file_cache_chown = parsed_config.get("rw_file_cache_chown")
 
-    parsed_config["rw_cache"] = rw_cache = ReadWriteFileCache(
-        parsed_config["rw_file_cache_path"],
-        parsed_config["rw_file_cache_ttl"],
-        rw_file_cache_chown,
-    )
+    if parsed_config.get("cache_touched_files"):
+        parsed_config["rw_cache"] = rw_cache = ReadWriteFileCache(
+            parsed_config["rw_file_cache_path"],
+            parsed_config["rw_file_cache_ttl"],
+            rw_file_cache_chown,
+        )
+    else:
+        parsed_config["rw_cache"] = None
+
+    parsed_config["fast_resume"] = parsed_config.get("fast_resume", False)
+    parsed_config["always_verify_hash"] = parsed_config.get("always_verify_hash", [])
+    parsed_config["paths"] = parsed_config.get("paths", [])
 
     return parsed_config
 
@@ -456,7 +463,7 @@ def add(
                     (ctx.obj["add_limit_percent"] * torrent.size) // 100,
                 )
                 if max_missing_size > missing_size:
-                    if ctx.obj["cache_touched_files"]:
+                    if ctx.obj.get("cache_touched_files"):
                         touched_torrent_paths = set(match_result.touched_files) | {
                             tf.path
                             for (tf, tf_result) in hash_touch_result.items()
@@ -577,6 +584,10 @@ def add(
 @click.pass_context
 def cleanup_cache(ctx):
     rw_cache = ctx.obj["rw_cache"]
+    if not rw_cache:
+        click.echo("No RW cached configured")
+        return
+
     removed_paths = rw_cache.cleanup_cache()
     click.echo(
         f"Done cleaning up cache, removed {len(removed_paths)} path{len(removed_paths) != 1 and 's' or ''}"
