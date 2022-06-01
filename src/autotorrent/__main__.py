@@ -30,6 +30,19 @@ from .utils import (
 )
 from .__version__ import __version__
 
+DEFAULT_CONFIG_FILE = """[autotorrent]
+database_path = "./autotorrent.db"
+link_type = "soft"
+always_verify_hash = [ ]
+paths = [ ]
+same_paths = [ ]
+add_limit_size = 128_000_000
+add_limit_percent = 5
+cache_touched_files = false
+rw_file_cache_ttl = 86400
+fast_resume = false
+"""
+
 BASE_CONFIG_FILE = """[autotorrent]
 database_path = "./autotorrent.db"
 link_type = "soft"
@@ -54,8 +67,11 @@ fast_resume = true
 
 
 def parse_config_file(path, utf8_compat_mode=False):
+    base_config = toml.loads(DEFAULT_CONFIG_FILE)
     config = toml.load(path)
-    parsed_config = config["autotorrent"]
+    parsed_config = base_config["autotorrent"]
+    parsed_config.update(config["autotorrent"])
+
     clients = parsed_config["clients"] = parse_clients_from_toml_dict(config)
 
     database_path = path.parent / Path(parsed_config["database_path"])
@@ -64,7 +80,7 @@ def parse_config_file(path, utf8_compat_mode=False):
     )
     parsed_config["indexer"] = indexer = Indexer(db)
     parsed_config["rewriter"] = rewriter = PathRewriter(
-        parsed_config.get("same_paths", [])
+        parsed_config["same_paths"]
     )
     parsed_config["matcher"] = matcher = Matcher(rewriter, db)
 
@@ -79,9 +95,9 @@ def parse_config_file(path, utf8_compat_mode=False):
     else:
         parsed_config["rw_cache"] = None
 
-    parsed_config["fast_resume"] = parsed_config.get("fast_resume", False)
-    parsed_config["always_verify_hash"] = parsed_config.get("always_verify_hash", [])
-    parsed_config["paths"] = parsed_config.get("paths", [])
+    parsed_config["fast_resume"] = parsed_config["fast_resume"]
+    parsed_config["always_verify_hash"] = parsed_config["always_verify_hash"]
+    parsed_config["paths"] = parsed_config["paths"]
 
     return parsed_config
 

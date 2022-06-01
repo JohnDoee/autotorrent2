@@ -560,8 +560,8 @@ def parse_torrent(
                 for p in f[b"path"]
                 if p
             ]
-            if not all(path):
-                raise FailedToParseTorrentException("Broken path elements")
+            if any(p is None for p in path):
+                raise FailedToParseTorrentException("Broken path elements found in torrent, try utf-8 compat mode")
             if not path:
                 raise FailedToParseTorrentException("Empty path")
             if any(p is None for p in path):

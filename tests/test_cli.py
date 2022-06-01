@@ -15,9 +15,9 @@ def test_cli_add_link_type(testfiles, indexer, matcher, client, configfile, tmp_
     configfile.save_config()
 
     runner = CliRunner()
-    result = runner.invoke(cli, ['scan', '-p', str(testfiles)])
+    result = runner.invoke(cli, ['scan', '-p', str(testfiles)], catch_exceptions=False)
     assert result.exit_code == 0
-    result = runner.invoke(cli, ['add', 'testclient', str(testfiles / "test.torrent")])
+    result = runner.invoke(cli, ['add', 'testclient', str(testfiles / "test.torrent")], catch_exceptions=False)
     assert result.exit_code == 0
     action, kwargs = client._action_queue[0]
     assert action == "add"
