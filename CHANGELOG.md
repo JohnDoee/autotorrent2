@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.2] - 2022-06-01
+### Added
+
+- Default config where possible
+- Updated libtc version to support labels
+
 ## [1.0.1] - 2022-05-30
 ### Bugfix
 
