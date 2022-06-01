@@ -68,6 +68,11 @@ rw_file_cache_path = "/mnt/store_path/cache"
 # Tell client to fast-resume, not supported in all clients or in all situations.
 fast_resume = true
 
+# List of fnmatch patterns to ignore when scanning local data and matching against torrent.
+# The patterns are only used doing "at2 scan" and "at add". They are only matched against the filename.
+# It is case-sensitive to some extend, see https://docs.python.org/3/library/fnmatch.html for syntax and description
+ignore_file_patterns = [ ]
+
 # List of clients
 # See https://github.com/JohnDoee/libtc#config-file-syntax for syntax (or infer it from reading the examples)
 [clients]

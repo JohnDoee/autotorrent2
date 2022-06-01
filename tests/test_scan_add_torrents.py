@@ -561,3 +561,11 @@ def test_scan_missing_sample_unsplitable(testfiles, indexer, matcher, client):
         PurePosixPath("Some-Release/some-rls.r06"): testfiles
         / "Some-Release/some-rls.r06",
     }
+
+def test_scan_ignore_patterns(testfiles, indexer, matcher, client):
+    indexer.ignore_file_patterns = ["*.txt"]
+    indexer.scan_paths([testfiles])
+    assert (
+        matcher.match_files_exact(bdecode((testfiles / "test.torrent").read_bytes()))
+        is None
+    )

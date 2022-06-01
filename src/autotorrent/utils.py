@@ -531,6 +531,13 @@ class Torrent(
 
         return file_status_mapping, file_touch_status_mapping
 
+    def has_file_patterns(self, patterns):
+        for torrent_file in self.filelist:
+            for pattern in patterns:
+                if fnmatch(torrent_file.path.name, pattern):
+                    return True
+        return False
+
 
 TorrentFile = namedtuple(
     "TorrentFile", ["path", "size", "pieces", "is_last_file"], defaults=(False,)

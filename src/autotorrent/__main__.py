@@ -41,6 +41,7 @@ add_limit_percent = 5
 cache_touched_files = false
 rw_file_cache_ttl = 86400
 fast_resume = false
+ignore_file_patterns = [ ]
 """
 
 BASE_CONFIG_FILE = """[autotorrent]
@@ -60,6 +61,7 @@ cache_touched_files = false
 rw_file_cache_ttl = 86400
 rw_file_cache_path = "/mnt/store_path/cache"
 fast_resume = true
+ignore_file_patterns = [ ]
 
 [clients]
 
@@ -78,7 +80,7 @@ def parse_config_file(path, utf8_compat_mode=False):
     parsed_config["db"] = db = Database(
         database_path, utf8_compat_mode=utf8_compat_mode
     )
-    parsed_config["indexer"] = indexer = Indexer(db)
+    parsed_config["indexer"] = indexer = Indexer(db, ignore_file_patterns=parsed_config["ignore_file_patterns"])
     parsed_config["rewriter"] = rewriter = PathRewriter(
         parsed_config["same_paths"]
     )
@@ -432,6 +434,10 @@ def add(
             torrent = parse_torrent(torrent_data, utf8_compat_mode=db.utf8_compat_mode)
         except (BTFailure, FailedToParseTorrentException):
             add_status_formatter("failed", torrent_path, "failed to parse torrent file")
+            stats["failed"] += 1
+            continue
+        if torrent.has_file_patterns(ctx.obj["ignore_file_patterns"]):
+            add_status_formatter("failed", torrent_path, "file contains ignored patterns and can therefore never be matched")
             stats["failed"] += 1
             continue
         infohash = hashlib.sha1(bencode(torrent_data[b"info"])).hexdigest()

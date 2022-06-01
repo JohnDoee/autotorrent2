@@ -29,3 +29,15 @@ def test_cli_add_link_type(testfiles, indexer, matcher, client, configfile, tmp_
         assert not link_file.is_symlink()
     else:
         raise Exception(f"Unknown link type {linktype}")
+
+
+def test_cli_ignore_patterns(testfiles, indexer, matcher, client, configfile, tmp_path):
+    configfile.config["autotorrent"]["ignore_file_patterns"] = ["*.txt"]
+    configfile.save_config()
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ['scan', '-p', str(testfiles)], catch_exceptions=False)
+    assert result.exit_code == 0
+    result = runner.invoke(cli, ['add', 'testclient', str(testfiles / "test.torrent")], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert 'Failed' in result.output

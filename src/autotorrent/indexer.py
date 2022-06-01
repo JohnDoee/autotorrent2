@@ -1,4 +1,5 @@
 import logging
+from fnmatch import fnmatch
 from pathlib import Path
 
 from .db import InsertTorrentFile
@@ -10,8 +11,9 @@ INSERT_QUEUE_MAX_SIZE = 1000
 
 
 class Indexer:
-    def __init__(self, db):
+    def __init__(self, db, ignore_file_patterns=None):
         self.db = db
+        self.ignore_file_patterns = ignore_file_patterns or []
 
     def scan_paths(self, paths, full_scan=True):
         if full_scan:
@@ -22,12 +24,20 @@ class Indexer:
             self._scan_path(path)
         self.db.commit()
 
+    def _match_ignore_pattern(self, p):
+        for ignore_file_pattern in self.ignore_file_patterns:
+            if fnmatch(p.name, ignore_file_pattern):
+                return True
+        return False
+
     def _scan_path(self, path):
         files = []
         for p in path.iterdir():
             if p.is_dir():
                 self._scan_path(p)
             elif p.is_file():
+                if self._match_ignore_pattern(p):
+                    continue
                 files.append(p)
                 self.db.insert_file_path(p)
 
