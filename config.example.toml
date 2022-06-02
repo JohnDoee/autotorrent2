@@ -85,6 +85,7 @@ port = 58846
 username = "localclient"
 password = "secretpassword"
 session_path = "~/.config/deluge/"
+label = "labelthis"
 
 [clients.the-transmission]
 display_name = "Some transmission"
@@ -103,6 +104,7 @@ display_name = "rtorrent"
 client_type = "rtorrent"
 url = "scgi://127.0.0.1:5000"
 session_path = "~/.rtorrent/"
+label = "testlabel"
 
 [clients.another-q-bittorrent]
 display_name = "qBittorrent 1"
