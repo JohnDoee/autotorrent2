@@ -30,6 +30,9 @@ class ReadWriteFileCache:
                 for target_path in conf["target_paths"]:
                     link_type = target_path["link_type"]
                     target_path = Path(target_path["path"])
+                    if not target_path.exists():
+                        logger.warning(f"Target path {target_path!s} does not exist")
+                        continue
                     logger.debug(f"Rewriting {target_path!s} to {source_path!s}")
                     target_path.unlink()
                     create_link(source_path, target_path, link_type)
