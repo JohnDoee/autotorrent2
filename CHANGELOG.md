@@ -3,7 +3,11 @@
 ## [1.0.] - 2022-
 ### Added
 
-- Option to ignore file patterns during scan
+- Option to ignore file patterns during scan #7
+
+### Bugfix
+
+- Bumped libtc version to resolve qBittorrent issues #9
 
 ## [1.0.2] - 2022-06-01
 ### Added
