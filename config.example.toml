@@ -71,7 +71,9 @@ fast_resume = true
 # List of fnmatch patterns to ignore when scanning local data and matching against torrent.
 # The patterns are only used doing "at2 scan" and "at add". They are only matched against the filename.
 # It is case-sensitive to some extend, see https://docs.python.org/3/library/fnmatch.html for syntax and description
-ignore_file_patterns = [ ]
+ignore_file_patterns = [
+    "*.png"
+]
 
 # List of clients
 # See https://github.com/JohnDoee/libtc#config-file-syntax for syntax (or infer it from reading the examples)

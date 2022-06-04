@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.] - 2022-
+## [1.0.3] - 2022-06-04
 ### Added
 
 - Option to ignore file patterns during scan #7

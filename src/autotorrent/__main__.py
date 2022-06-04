@@ -15,6 +15,7 @@ from libtc import (
     parse_clients_from_toml_dict,
 )
 
+from .__version__ import __version__
 from .db import Database
 from .exceptions import FailedToCreateLinkException
 from .indexer import Indexer
@@ -28,7 +29,6 @@ from .utils import (
     humanize_bytes,
     parse_torrent,
 )
-from .__version__ import __version__
 
 DEFAULT_CONFIG_FILE = """[autotorrent]
 database_path = "./autotorrent.db"
@@ -80,10 +80,10 @@ def parse_config_file(path, utf8_compat_mode=False):
     parsed_config["db"] = db = Database(
         database_path, utf8_compat_mode=utf8_compat_mode
     )
-    parsed_config["indexer"] = indexer = Indexer(db, ignore_file_patterns=parsed_config["ignore_file_patterns"])
-    parsed_config["rewriter"] = rewriter = PathRewriter(
-        parsed_config["same_paths"]
+    parsed_config["indexer"] = indexer = Indexer(
+        db, ignore_file_patterns=parsed_config["ignore_file_patterns"]
     )
+    parsed_config["rewriter"] = rewriter = PathRewriter(parsed_config["same_paths"])
     parsed_config["matcher"] = matcher = Matcher(rewriter, db)
 
     rw_file_cache_chown = parsed_config.get("rw_file_cache_chown")
@@ -437,7 +437,11 @@ def add(
             stats["failed"] += 1
             continue
         if torrent.has_file_patterns(ctx.obj["ignore_file_patterns"]):
-            add_status_formatter("failed", torrent_path, "file contains ignored patterns and can therefore never be matched")
+            add_status_formatter(
+                "failed",
+                torrent_path,
+                "file contains ignored patterns and can therefore never be matched",
+            )
             stats["failed"] += 1
             continue
         infohash = hashlib.sha1(bencode(torrent_data[b"info"])).hexdigest()
