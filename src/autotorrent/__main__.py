@@ -50,6 +50,7 @@ link_type = "soft"
 always_verify_hash = [
     "*.nfo",
     "*.sfv",
+    "*.diz",
 ]
 paths = [ ]
 same_paths = [ ]

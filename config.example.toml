@@ -18,6 +18,7 @@ link_type = "soft"
 always_verify_hash = [
     "*.nfo",
     "*.sfv",
+    "*.diz",
 ]
 
 # List of paths to scan when running at2 scan
