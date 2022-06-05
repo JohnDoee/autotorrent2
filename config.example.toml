@@ -66,6 +66,7 @@ rw_file_cache_ttl = 86400
 rw_file_cache_path = "/mnt/store_path/cache"
 
 # Tell client to fast-resume, not supported in all clients or in all situations.
+# WARNING: setting fast_resume to true can cause errors and problems.
 fast_resume = false
 
 # List of fnmatch patterns to ignore when scanning local data and matching against torrent.
