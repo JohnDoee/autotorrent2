@@ -81,12 +81,11 @@ class Database:
         if self._insert_counter >= COMMIT_COUNT:
             self.commit()
 
-    def insert_file_path(self, path):
+    def insert_file_path(self, path, size):
         decoded_path = decode_str(path, try_fix=self.utf8_compat_mode)
         if decoded_path is None:
             return
         name_path, name = os.path.split(decoded_path)
-        size = path.stat().st_size
         normalized_name = normalize_filename(name)
         logger.debug(
             f"Inserting name: {name!r} name_path: {name_path!r} size: {size} normalized_name: {normalized_name!r}"

@@ -1,6 +1,9 @@
 import logging
+from concurrent.futures import ThreadPoolExecutor
+from enum import Enum
 from fnmatch import fnmatch
 from pathlib import Path
+from queue import SimpleQueue
 
 from .db import InsertTorrentFile
 from .utils import get_root_of_unsplitable, is_unsplitable
@@ -8,6 +11,11 @@ from .utils import get_root_of_unsplitable, is_unsplitable
 logger = logging.getLogger(__name__)
 
 INSERT_QUEUE_MAX_SIZE = 1000
+
+class IndexAction(Enum):
+    ADD = 1
+    MARK_UNSPLITABLE = 2
+    FINISHED = 3
 
 
 class Indexer:
@@ -19,9 +27,23 @@ class Indexer:
         if full_scan:
             self.db.truncate_files()
         paths = [Path(p) for p in paths]
-        for path in paths:
-            logger.info(f"Indexing path {path}")
-            self._scan_path(path)
+        queue = SimpleQueue()
+        live_thread_count = 0
+        with ThreadPoolExecutor(max_workers=len(paths) + 1) as executor:
+            for path in paths:
+                logger.info(f"Indexing path {path}")
+                executor.submit(self._scan_path_thread, path, queue, root_thread=True)
+                live_thread_count += 1
+
+            while live_thread_count:
+                action, args = queue.get()
+                if action == IndexAction.ADD:
+                    self.db.insert_file_path(*args)
+                elif action == IndexAction.MARK_UNSPLITABLE:
+                    self.db.mark_unsplitable_root(*args)
+                elif action == IndexAction.FINISHED:
+                    live_thread_count -= 1
+
         self.db.commit()
 
     def _match_ignore_pattern(self, p):
@@ -30,21 +52,25 @@ class Indexer:
                 return True
         return False
 
-    def _scan_path(self, path):
+    def _scan_path_thread(self, path, queue, root_thread=False):
         files = []
         for p in path.iterdir():
             if p.is_dir():
-                self._scan_path(p)
+                self._scan_path_thread(p, queue)
             elif p.is_file():
                 if self._match_ignore_pattern(p):
                     continue
                 files.append(p)
-                self.db.insert_file_path(p)
+                size = p.stat().st_size
+                queue.put((IndexAction.ADD, (p, size)))
 
         # TODO: probably not utf-8 problems resilient
         if is_unsplitable(files):  # TODO: prevent duplicate work (?)
             unsplitable_root = get_root_of_unsplitable(path)
-            self.db.mark_unsplitable_root(unsplitable_root)
+            queue.put((IndexAction.MARK_UNSPLITABLE, (unsplitable_root, )))
+
+        if root_thread:
+            queue.put((IndexAction.FINISHED, ()))
 
     def scan_clients(self, clients, full_scan=False, fast_scan=False):
         for name, client in clients.items():
