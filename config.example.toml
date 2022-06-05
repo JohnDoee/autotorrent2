@@ -66,7 +66,7 @@ rw_file_cache_ttl = 86400
 rw_file_cache_path = "/mnt/store_path/cache"
 
 # Tell client to fast-resume, not supported in all clients or in all situations.
-fast_resume = true
+fast_resume = false
 
 # List of fnmatch patterns to ignore when scanning local data and matching against torrent.
 # The patterns are only used doing "at2 scan" and "at add". They are only matched against the filename.
