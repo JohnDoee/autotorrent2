@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.0] - 2022-06-
+### Change
+
+- fast_resume is now set to false default everywhere as it can cause problems #15
+- Disk scan now threaded with a pipeline design #14
+
 ## [1.0.3] - 2022-06-04
 ### Added
 
