@@ -60,7 +60,7 @@ cache_touched_files = false
 # rw_file_cache_chown = "1000:1000"
 rw_file_cache_ttl = 86400
 rw_file_cache_path = "/mnt/store_path/cache"
-fast_resume = true
+fast_resume = false
 ignore_file_patterns = [ ]
 
 [clients]
