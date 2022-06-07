@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.1.0] - 2022-06-
+## [1.1.0] - 2022-06-07
 ### Add
 
 - Option to ignore directory patterns during scan #18
