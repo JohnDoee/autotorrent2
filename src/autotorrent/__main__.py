@@ -42,6 +42,7 @@ cache_touched_files = false
 rw_file_cache_ttl = 86400
 fast_resume = false
 ignore_file_patterns = [ ]
+ignore_directory_patterns = [ ]
 """
 
 BASE_CONFIG_FILE = """[autotorrent]
@@ -64,6 +65,7 @@ rw_file_cache_path = "/mnt/store_path/cache"
 # WARNING: setting fast_resume to true can cause errors and problems.
 fast_resume = false
 ignore_file_patterns = [ ]
+ignore_directory_patterns = [ ]
 
 [clients]
 
@@ -83,7 +85,9 @@ def parse_config_file(path, utf8_compat_mode=False):
         database_path, utf8_compat_mode=utf8_compat_mode
     )
     parsed_config["indexer"] = indexer = Indexer(
-        db, ignore_file_patterns=parsed_config["ignore_file_patterns"]
+        db,
+        ignore_file_patterns=parsed_config["ignore_file_patterns"],
+        ignore_directory_patterns=parsed_config["ignore_directory_patterns"],
     )
     parsed_config["rewriter"] = rewriter = PathRewriter(parsed_config["same_paths"])
     parsed_config["matcher"] = matcher = Matcher(rewriter, db)

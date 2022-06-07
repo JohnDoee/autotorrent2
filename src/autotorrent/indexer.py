@@ -19,9 +19,10 @@ class IndexAction(Enum):
 
 
 class Indexer:
-    def __init__(self, db, ignore_file_patterns=None):
+    def __init__(self, db, ignore_file_patterns=None, ignore_directory_patterns=None):
         self.db = db
         self.ignore_file_patterns = ignore_file_patterns or []
+        self.ignore_directory_patterns = ignore_directory_patterns or []
 
     def scan_paths(self, paths, full_scan=True):
         if full_scan:
@@ -46,19 +47,28 @@ class Indexer:
 
         self.db.commit()
 
-    def _match_ignore_pattern(self, p):
-        for ignore_file_pattern in self.ignore_file_patterns:
-            if fnmatch(p.name, ignore_file_pattern):
-                return True
+    def _match_ignore_pattern(self, ignore_patterns, p, ignore_case=False):
+        name = p.name
+        if ignore_case:
+            name = name.lower()
+        for ignore_pattern in ignore_patterns:
+            if ignore_case:
+                if fnmatch(name, ignore_pattern.lower()):
+                    return True
+            else:
+                if fnmatch(name, ignore_pattern):
+                    return True
         return False
 
     def _scan_path_thread(self, path, queue, root_thread=False):
         files = []
         for p in path.iterdir():
             if p.is_dir():
+                if self._match_ignore_pattern(self.ignore_directory_patterns, p, ignore_case=True):
+                    continue
                 self._scan_path_thread(p, queue)
             elif p.is_file():
-                if self._match_ignore_pattern(p):
+                if self._match_ignore_pattern(self.ignore_file_patterns, p):
                     continue
                 files.append(p)
                 size = p.stat().st_size

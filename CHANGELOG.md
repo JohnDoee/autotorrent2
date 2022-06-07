@@ -1,6 +1,10 @@
 # Changelog
 
 ## [1.1.0] - 2022-06-
+### Add
+
+- Option to ignore directory patterns during scan #18
+
 ### Change
 
 - fast_resume is now set to false default everywhere as it can cause problems #15
