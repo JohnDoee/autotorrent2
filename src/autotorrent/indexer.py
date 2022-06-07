@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 INSERT_QUEUE_MAX_SIZE = 1000
 
+
 class IndexAction(Enum):
     ADD = 1
     MARK_UNSPLITABLE = 2
@@ -64,7 +65,9 @@ class Indexer:
         files = []
         for p in path.iterdir():
             if p.is_dir():
-                if self._match_ignore_pattern(self.ignore_directory_patterns, p, ignore_case=True):
+                if self._match_ignore_pattern(
+                    self.ignore_directory_patterns, p, ignore_case=True
+                ):
                     continue
                 self._scan_path_thread(p, queue)
             elif p.is_file():
@@ -77,7 +80,7 @@ class Indexer:
         # TODO: probably not utf-8 problems resilient
         if is_unsplitable(files):  # TODO: prevent duplicate work (?)
             unsplitable_root = get_root_of_unsplitable(path)
-            queue.put((IndexAction.MARK_UNSPLITABLE, (unsplitable_root, )))
+            queue.put((IndexAction.MARK_UNSPLITABLE, (unsplitable_root,)))
 
         if root_thread:
             queue.put((IndexAction.FINISHED, ()))
