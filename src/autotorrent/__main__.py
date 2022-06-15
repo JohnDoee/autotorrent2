@@ -400,6 +400,12 @@ def rm(ctx, client, path):
     help="Move the torrent to this path after it has been added successfully to the client.",
     type=click.Path(),
 )
+@click.option(
+    "--stopped",
+    help="Add the torrent in stopped state.",
+    flag_value=True,
+    default=False,
+)
 @click.argument("torrent", nargs=-1, type=click.Path(exists=True, dir_okay=False))
 @click.pass_context  # TODO: allow feedback while running
 def add(
@@ -413,6 +419,7 @@ def add(
     chown,
     dry_run,
     move_torrent_on_add,
+    stopped,
 ):
     torrent_paths = torrent
     client_name = client
@@ -567,6 +574,7 @@ def add(
                         torrent_data,
                         torrent_root_path,
                         fast_resume=ctx.obj["fast_resume"],
+                        stopped=stopped,
                     )
                 except FailedToExecuteException:
                     add_status_formatter(

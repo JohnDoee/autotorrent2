@@ -2,6 +2,10 @@
 
 ## [1.1.1] - 2022-06-
 
+### Add
+
+- Torrents can be added in stopped state via CLI flag #20
+
 ### Change
 
 - Renamed OK to Added to streamline messages #23

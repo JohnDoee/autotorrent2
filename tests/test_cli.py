@@ -22,6 +22,7 @@ def test_cli_add_link_type(testfiles, indexer, matcher, client, configfile, tmp_
     action, kwargs = client._action_queue[0]
     assert action == "add"
     link_file = (kwargs["destination_path"] / "testfiles" / "file_a.txt")
+    assert not kwargs["stopped"]
     assert link_file.exists()
     if linktype == "soft":
         assert link_file.is_symlink()
@@ -100,3 +101,14 @@ def test_cli_add_symlink_store_path(testfiles, indexer, matcher, client, configf
     action, kwargs = client._action_queue[0]
     assert action == "add"
     assert (store_path / "test" / "data") == kwargs["destination_path"]
+
+
+def test_cli_add_stopped_state(testfiles, indexer, matcher, client, configfile, tmp_path):
+    runner = CliRunner()
+    result = runner.invoke(cli, ['scan', '-p', str(testfiles)], catch_exceptions=False)
+    assert result.exit_code == 0
+    result = runner.invoke(cli, ['add', 'testclient', '--stopped', '-e', str(testfiles / "test.torrent")], catch_exceptions=False)
+    assert result.exit_code == 0
+    action, kwargs = client._action_queue[0]
+    assert action == "add"
+    assert kwargs["stopped"]
