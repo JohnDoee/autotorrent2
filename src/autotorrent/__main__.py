@@ -71,6 +71,8 @@ ignore_directory_patterns = [ ]
 
 """
 
+logger = logging.getLogger(__name__)
+
 
 def parse_config_file(path, utf8_compat_mode=False):
     base_config = toml.loads(DEFAULT_CONFIG_FILE)
@@ -172,6 +174,7 @@ def cli(ctx, config, verbose, utf8_compat_mode):
         logging.basicConfig(
             level=logging.DEBUG, format="%(levelname)s:%(name)s:%(lineno)d:%(message)s"
         )
+    # logger.debug(f"Using config file path: {config}")
     ctx.ensure_object(dict)
     ctx.obj.update(parse_config_file(config, utf8_compat_mode=utf8_compat_mode))
 
@@ -542,7 +545,8 @@ def add(
                             torrent_root_path = "/tmp/autotorrent_dry_run"
                         else:
                             torrent_root_path = create_link_result.data_path
-                    except FailedToCreateLinkException:
+                    except FailedToCreateLinkException as e:
+                        logger.debug(f"Failed to create path: {e}")
                         stats["exists"] += 1
                         add_status_formatter(
                             "exists",

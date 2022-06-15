@@ -81,7 +81,9 @@ def configfile(tmp_path, monkeypatch, client):
 
     cf = ConfigFile(tmp_path, client)
     cf.create_config()
-    cf.config["autotorrent"]["store_path"] = str(tmp_path.resolve() / "store_path")
+    store_path = tmp_path.resolve() / "store_path" / "{torrent_name}"
+    store_path.mkdir(parents=True, exist_ok=True)
+    cf.config["autotorrent"]["store_path"] = str(store_path)
     cf.save_config()
     return cf
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.1] - 2022-06-
+### Bugfix
+
+- Symlinks are now not resolved when adding to client (updated libtc)
+
 ## [1.1.0] - 2022-06-07
 ### Add
 

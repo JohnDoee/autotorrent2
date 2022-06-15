@@ -673,14 +673,14 @@ def create_link_path(
 
     if dry_run:
         if store_path.exists():
-            raise FailedToCreateLinkException("Path already exist")
+            raise FailedToCreateLinkException(f"Path {store_path} already exist")
         else:
             return None
 
     try:
         store_path.mkdir(parents=True)
     except FileExistsError:
-        raise FailedToCreateLinkException("Path already exist")
+        raise FailedToCreateLinkException(f"Path {store_path} already exist")
 
     data_store_path = store_path / STORE_DATA_PATH
     data_store_path.mkdir()
