@@ -840,7 +840,7 @@ def add_status_formatter(status, torrent_path, message):
         "exists": ["yellow", "Exists"],
         "missing_files": ["red", "Missing"],
         "failed": ["magenta", "Failed"],
-        "added": ["green", "OK"],
+        "added": ["green", "Added"],
     }
     status_spec = status_specs[status]
 

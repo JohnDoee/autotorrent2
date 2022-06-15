@@ -1,9 +1,14 @@
 # Changelog
 
 ## [1.1.1] - 2022-06-
+
+### Change
+
+- Renamed OK to Added to streamline messages #23
+
 ### Bugfix
 
-- Symlinks are now not resolved when adding to client (updated libtc)
+- Symlinks are now not resolved when adding to client (updated libtc) #17
 
 ## [1.1.0] - 2022-06-07
 ### Add
