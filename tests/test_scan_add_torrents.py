@@ -525,40 +525,102 @@ def test_scan_invalid_encoding(testfiles, indexer, matcher, client):
     indexer.scan_paths([testfiles])
 
 
-def test_scan_missing_sample_unsplitable(testfiles, indexer, matcher, client):
-    shutil.rmtree(testfiles / "Some-Release/Sample")
+def test_scan_different_folder_in_torrent_unsplitable(testfiles, indexer, matcher, client):
     indexer.scan_paths([testfiles])
 
     result = matcher.match_files_dynamic(
-        bdecode((testfiles / "Some-Release.torrent").read_bytes()),
+        bdecode((testfiles / "Some-Release [test].torrent").read_bytes()),
         add_limit_size=100,
         add_limit_percent=10,
     )
     assert result.matched_files == {
-        PurePosixPath("Some-Release/Sample/some-rls.mkv"): None,
-        PurePosixPath("Some-Release/Subs/some-subs.rar"): testfiles
+        PurePosixPath("Some-Release [test]/Sample/some-rls.mkv"): testfiles
+        / "Some-Release/Sample/some-rls.mkv",
+        PurePosixPath("Some-Release [test]/Subs/some-subs.rar"): testfiles
         / "Some-Release/Subs/some-subs.rar",
-        PurePosixPath("Some-Release/Subs/some-subs.sfv"): testfiles
+        PurePosixPath("Some-Release [test]/Subs/some-subs.sfv"): testfiles
         / "Some-Release/Subs/some-subs.sfv",
-        PurePosixPath("Some-Release/some-rls.sfv"): testfiles
+        PurePosixPath("Some-Release [test]/some-rls.sfv"): testfiles
         / "Some-Release/some-rls.sfv",
-        PurePosixPath("Some-Release/some-rls.nfo"): testfiles
+        PurePosixPath("Some-Release [test]/some-rls.nfo"): testfiles
         / "Some-Release/some-rls.nfo",
-        PurePosixPath("Some-Release/some-rls.rar"): testfiles
+        PurePosixPath("Some-Release [test]/some-rls.rar"): testfiles
         / "Some-Release/some-rls.rar",
-        PurePosixPath("Some-Release/some-rls.r00"): testfiles
+        PurePosixPath("Some-Release [test]/some-rls.r00"): testfiles
         / "Some-Release/some-rls.r00",
-        PurePosixPath("Some-Release/some-rls.r01"): testfiles
+        PurePosixPath("Some-Release [test]/some-rls.r01"): testfiles
         / "Some-Release/some-rls.r01",
-        PurePosixPath("Some-Release/some-rls.r02"): testfiles
+        PurePosixPath("Some-Release [test]/some-rls.r02"): testfiles
         / "Some-Release/some-rls.r02",
-        PurePosixPath("Some-Release/some-rls.r03"): testfiles
+        PurePosixPath("Some-Release [test]/some-rls.r03"): testfiles
         / "Some-Release/some-rls.r03",
-        PurePosixPath("Some-Release/some-rls.r04"): testfiles
+        PurePosixPath("Some-Release [test]/some-rls.r04"): testfiles
         / "Some-Release/some-rls.r04",
-        PurePosixPath("Some-Release/some-rls.r05"): testfiles
+        PurePosixPath("Some-Release [test]/some-rls.r05"): testfiles
         / "Some-Release/some-rls.r05",
-        PurePosixPath("Some-Release/some-rls.r06"): testfiles
+        PurePosixPath("Some-Release [test]/some-rls.r06"): testfiles
+        / "Some-Release/some-rls.r06",
+    }
+
+
+def test_scan_different_folder_in_torrent_missing_files_should_be_there_unsplitable(testfiles, indexer, matcher, client):
+    (testfiles / "Some-Release" / "some-rls.r03").unlink()
+    indexer.scan_paths([testfiles])
+
+    result = matcher.match_files_dynamic(
+        bdecode((testfiles / "Some-Release [test].torrent").read_bytes()),
+        add_limit_size=100,
+        add_limit_percent=10,
+    )
+    assert result.matched_files is None
+
+
+def test_scan_different_folder_in_torrent_missing_files_can_not_be_there_unsplitable(testfiles, indexer, matcher, client):
+    (testfiles / "Some-Release" / "some-rls.nfo").unlink()
+    indexer.scan_paths([testfiles])
+
+    result = matcher.match_files_dynamic(
+        bdecode((testfiles / "Some-Release [test].torrent").read_bytes()),
+        add_limit_size=100,
+        add_limit_percent=10,
+    )
+    assert result.matched_files is not None
+
+
+def test_scan_extra_folder_in_torrent_unsplitable(testfiles, indexer, matcher, client):
+    indexer.scan_paths([testfiles])
+
+    result = matcher.match_files_dynamic(
+        bdecode((testfiles / "folder-does-not-exist.torrent").read_bytes()),
+        add_limit_size=100,
+        add_limit_percent=10,
+    )
+    assert result.matched_files == {
+        PurePosixPath("folder-does-not-exist/Some-Release/Sample/some-rls.mkv"): testfiles
+        / "Some-Release/Sample/some-rls.mkv",
+        PurePosixPath("folder-does-not-exist/Some-Release/Subs/some-subs.rar"): testfiles
+        / "Some-Release/Subs/some-subs.rar",
+        PurePosixPath("folder-does-not-exist/Some-Release/Subs/some-subs.sfv"): testfiles
+        / "Some-Release/Subs/some-subs.sfv",
+        PurePosixPath("folder-does-not-exist/Some-Release/some-rls.sfv"): testfiles
+        / "Some-Release/some-rls.sfv",
+        PurePosixPath("folder-does-not-exist/Some-Release/some-rls.nfo"): testfiles
+        / "Some-Release/some-rls.nfo",
+        PurePosixPath("folder-does-not-exist/Some-Release/some-rls.rar"): testfiles
+        / "Some-Release/some-rls.rar",
+        PurePosixPath("folder-does-not-exist/Some-Release/some-rls.r00"): testfiles
+        / "Some-Release/some-rls.r00",
+        PurePosixPath("folder-does-not-exist/Some-Release/some-rls.r01"): testfiles
+        / "Some-Release/some-rls.r01",
+        PurePosixPath("folder-does-not-exist/Some-Release/some-rls.r02"): testfiles
+        / "Some-Release/some-rls.r02",
+        PurePosixPath("folder-does-not-exist/Some-Release/some-rls.r03"): testfiles
+        / "Some-Release/some-rls.r03",
+        PurePosixPath("folder-does-not-exist/Some-Release/some-rls.r04"): testfiles
+        / "Some-Release/some-rls.r04",
+        PurePosixPath("folder-does-not-exist/Some-Release/some-rls.r05"): testfiles
+        / "Some-Release/some-rls.r05",
+        PurePosixPath("folder-does-not-exist/Some-Release/some-rls.r06"): testfiles
         / "Some-Release/some-rls.r06",
     }
 

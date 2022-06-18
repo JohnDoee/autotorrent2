@@ -40,7 +40,7 @@ class Matcher:
         self.db = db
 
     def _match_filelist_exact(
-        self, filelist, skip_prefix_path=None, match_normalized_filename=False
+        self, filelist, skip_prefix_path=None, match_normalized_filename=False,
     ):
         if skip_prefix_path:
             skip_prefix_path = Path(skip_prefix_path.strip(os.sep))
@@ -60,17 +60,18 @@ class Matcher:
         handled_root_paths = set()
         match_results = []
         for search_file in filelist[: ceil(len(filelist) * EXACT_MATCH_FACTOR)]:
+            path_postfix = search_file.path.parent
             if match_normalized_filename:
                 entry_matched_files = self.db.search_file(
                     normalized_filename=search_file.path.name,
                     size=search_file.size,
-                    path_postfix=search_file.path.parent,
+                    path_postfix=path_postfix,
                 )
             else:
                 entry_matched_files = self.db.search_file(
                     filename=search_file.path.name,
                     size=search_file.size,
-                    path_postfix=search_file.path.parent,
+                    path_postfix=path_postfix,
                 )
             for entry_matched_file in entry_matched_files:
                 if search_file.path:
@@ -106,6 +107,92 @@ class Matcher:
                     matched_files.append(MatchedFile(f, search_result))
                     if search_result:
                         matched_file_size += f.size
+                match_results.append(
+                    MatchResult(root_path, matched_files, matched_file_size)
+                )
+
+        return match_results
+
+
+    def _match_filelist_unsplitable(
+        self, filelist, skip_prefix_path=None, match_normalized_filename=False,
+    ):
+        if skip_prefix_path:
+            skip_prefix_path = Path(skip_prefix_path.strip(os.sep))
+            filelist = [f for f in filelist if is_relative_to(f.path, skip_prefix_path)]
+        filelist = sorted(
+            filelist,
+            key=lambda f: (not can_potentially_miss_in_unsplitable(f.path), f.size),
+            reverse=True,
+        )
+
+        if not filelist:
+            logger.warning(
+                f"Empty filelist, bailing - skip_prefix_path:{skip_prefix_path}"
+            )
+            return None
+
+        handled_root_paths = set()
+        match_results = []
+        for search_file in filelist[: ceil(len(filelist) * EXACT_MATCH_FACTOR)]:
+            relative_path = search_file.path.relative_to(skip_prefix_path)
+            if match_normalized_filename:
+                entry_matched_files = self.db.search_file(
+                    normalized_filename=search_file.path.name,
+                    size=search_file.size,
+                    path_postfix=relative_path.parent,
+                )
+            else:
+                entry_matched_files = self.db.search_file(
+                    filename=search_file.path.name,
+                    size=search_file.size,
+                    path_postfix=relative_path.parent,
+                )
+
+            for entry_matched_file in entry_matched_files:
+                root_path = entry_matched_file.path
+                for _ in range(len(relative_path.parts) - 1):
+                    root_path = root_path.parent
+                if root_path in handled_root_paths:
+                    logger.debug(
+                        f"Skipping scan of root_path {handled_root_paths} for matches"
+                    )
+                    continue
+                handled_root_paths.add(root_path)
+
+                root_path_is_correct_name = (root_path.name == skip_prefix_path.name)
+                logger.debug(f"Scanning root_path {root_path} for matches with root_path_is_correct_name={root_path_is_correct_name}")
+
+                matched_files = [MatchedFile(search_file, [entry_matched_file])]
+                matched_file_size = entry_matched_file.size
+
+                bad_path_found = False
+                for f in filelist:
+                    if f == search_file:
+                        continue
+                    f_path = root_path / f.path.relative_to(skip_prefix_path)
+                    f_name = f_path.name
+                    f_path = f_path.parent
+                    if match_normalized_filename:
+                        search_result = self.db.search_file(
+                            normalized_filename=f_name, size=f.size, path=f_path
+                        )
+                    else:
+                        search_result = self.db.search_file(
+                            filename=f_name, size=f.size, path=f_path
+                        )
+                    matched_files.append(MatchedFile(f, search_result))
+                    if search_result:
+                        matched_file_size += f.size
+
+                    if not search_result and not root_path_is_correct_name and not can_potentially_miss_in_unsplitable(f.path):
+                        bad_path_found = True
+                        break
+
+                if bad_path_found:
+                    logger.debug(f"Bad path found wit root_path={root_path}")
+                    continue
+
                 match_results.append(
                     MatchResult(root_path, matched_files, matched_file_size)
                 )
@@ -218,7 +305,12 @@ class Matcher:
             # Unsplitable paths cannot be matched with hash_size, this is
             # because it will often contain lots of file of the same size
             # and there would be too many candidates.
-            match_results = self._match_filelist_exact(
+            # match_results = self._match_filelist_exact(
+            #     torrent.filelist,
+            #     skip_prefix_path=os.path.sep.join(unsplitable_root),
+            #     match_normalized_filename=True,
+            # )
+            match_results = self._match_filelist_unsplitable(
                 torrent.filelist,
                 skip_prefix_path=os.path.sep.join(unsplitable_root),
                 match_normalized_filename=True,

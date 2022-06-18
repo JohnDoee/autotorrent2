@@ -112,3 +112,14 @@ def test_cli_add_stopped_state(testfiles, indexer, matcher, client, configfile, 
     action, kwargs = client._action_queue[0]
     assert action == "add"
     assert kwargs["stopped"]
+
+
+def test_cli_add_extreme_limits(testfiles, indexer, matcher, client, configfile, tmp_path):
+    configfile.config["autotorrent"]["add_limit_percent"] = 200
+    configfile.save_config()
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ['add', 'testclient', str(testfiles / "test.torrent")], catch_exceptions=False)
+    assert result.exit_code == 0
+    action, kwargs = client._action_queue[0]
+    assert action == "add"

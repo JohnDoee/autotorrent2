@@ -8,6 +8,7 @@
 
 ### Change
 
+- Unsplitable algorithm improved to support more use-cases
 - Renamed OK to Added to streamline messages #23
 
 ### Bugfix
