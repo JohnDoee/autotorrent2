@@ -576,7 +576,8 @@ def add(
                         fast_resume=ctx.obj["fast_resume"],
                         stopped=stopped,
                     )
-                except FailedToExecuteException:
+                except FailedToExecuteException as e:
+                    logger.debug(f"Failed to add torrent: {e!r}")
                     add_status_formatter(
                         "failed", torrent_path, "failed to send torrent to client"
                     )

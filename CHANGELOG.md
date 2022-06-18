@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.1.1] - 2022-06-
+## [1.2.0] - 2022-06-18
 
 ### Add
 
@@ -10,6 +10,7 @@
 
 - Unsplitable algorithm improved to support more use-cases
 - Renamed OK to Added to streamline messages #23
+- More information shared on failed to add exception #21
 
 ### Bugfix
 
