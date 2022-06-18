@@ -24,7 +24,7 @@ UNSPLITABLE_FILE_EXTENSIONS = [
     set([".mp3", ".sfv"]),
     set([".vob", ".ifo"]),
 ]
-UNSPLITABLE_FILE_MISSABLE = [ # If foldername does not match, these files can be missed
+UNSPLITABLE_FILE_MISSABLE = [  # If foldername does not match, these files can be missed
     "*.nfo",
     "*.sfv",
     "*.diz",
@@ -164,7 +164,11 @@ def get_root_of_unsplitable(path):
             re.IGNORECASE,
         )
         is_disk_path = re.match(r"^((bdmv)|(disc\d*)|(video_ts))$", name, re.IGNORECASE)
-        if not is_disk_path and name.lower() == "backup" and path.parent.name.lower() == "bdmv":
+        if (
+            not is_disk_path
+            and name.lower() == "backup"
+            and path.parent.name.lower() == "bdmv"
+        ):
             is_disk_path = True
 
         if not is_scene_path and not is_disk_path:

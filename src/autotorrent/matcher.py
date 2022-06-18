@@ -40,7 +40,10 @@ class Matcher:
         self.db = db
 
     def _match_filelist_exact(
-        self, filelist, skip_prefix_path=None, match_normalized_filename=False,
+        self,
+        filelist,
+        skip_prefix_path=None,
+        match_normalized_filename=False,
     ):
         if skip_prefix_path:
             skip_prefix_path = Path(skip_prefix_path.strip(os.sep))
@@ -113,9 +116,11 @@ class Matcher:
 
         return match_results
 
-
     def _match_filelist_unsplitable(
-        self, filelist, skip_prefix_path=None, match_normalized_filename=False,
+        self,
+        filelist,
+        skip_prefix_path=None,
+        match_normalized_filename=False,
     ):
         if skip_prefix_path:
             skip_prefix_path = Path(skip_prefix_path.strip(os.sep))
@@ -160,8 +165,10 @@ class Matcher:
                     continue
                 handled_root_paths.add(root_path)
 
-                root_path_is_correct_name = (root_path.name == skip_prefix_path.name)
-                logger.debug(f"Scanning root_path {root_path} for matches with root_path_is_correct_name={root_path_is_correct_name}")
+                root_path_is_correct_name = root_path.name == skip_prefix_path.name
+                logger.debug(
+                    f"Scanning root_path {root_path} for matches with root_path_is_correct_name={root_path_is_correct_name}"
+                )
 
                 matched_files = [MatchedFile(search_file, [entry_matched_file])]
                 matched_file_size = entry_matched_file.size
@@ -185,7 +192,11 @@ class Matcher:
                     if search_result:
                         matched_file_size += f.size
 
-                    if not search_result and not root_path_is_correct_name and not can_potentially_miss_in_unsplitable(f.path):
+                    if (
+                        not search_result
+                        and not root_path_is_correct_name
+                        and not can_potentially_miss_in_unsplitable(f.path)
+                    ):
                         bad_path_found = True
                         break
 
