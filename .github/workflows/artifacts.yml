@@ -1,0 +1,46 @@
+name: Build artifacts
+
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    tags:
+      - 1.*
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build-pyinstaller:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ['windows-latest', 'ubuntu-latest, 'macos-latest']
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+
+    - run: pip install . pyinstaller
+    - run: pyinstaller pyinstaller/autotorrent.spec
+    - uses: actions/upload-artifact@v3
+      with:
+        path: dist/*
+
+  build-shiv:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+
+    - run: pip install shiv
+    - run: mkdir dist
+    - run: shiv -c at2 -o dist/at2.pyz autotorrent2
+    - uses: actions/upload-artifact@v3
+      with:
+        path: dist/*
