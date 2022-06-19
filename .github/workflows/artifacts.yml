@@ -27,6 +27,7 @@ jobs:
     - run: pyinstaller pyinstaller/autotorrent.spec
     - uses: actions/upload-artifact@v3
       with:
+        name: pyinstaller-${{ matrix.os }}
         path: dist/*
 
   build-shiv:
@@ -43,4 +44,5 @@ jobs:
     - run: shiv -c at2 -o dist/at2.pyz autotorrent2
     - uses: actions/upload-artifact@v3
       with:
-        path: dist/*
+        name: shiv
+        path: dist/at2.pyz
