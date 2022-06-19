@@ -44,5 +44,5 @@ jobs:
     - run: shiv -c at2 -o dist/at2.pyz autotorrent2
     - uses: actions/upload-artifact@v3
       with:
-        name: shiv
+        name: zipapp-shiv
         path: dist/at2.pyz
