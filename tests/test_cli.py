@@ -123,3 +123,30 @@ def test_cli_add_extreme_limits(testfiles, indexer, matcher, client, configfile,
     assert result.exit_code == 0
     action, kwargs = client._action_queue[0]
     assert action == "add"
+
+
+def test_cli_missing_variable_store_path(testfiles, indexer, matcher, client, configfile, tmp_path):
+    store_path = tmp_path / "inaccessible"
+    store_path.mkdir(mode=0o000)
+    configfile.config["autotorrent"]["store_path"] = str(tmp_path / "garbage")
+    configfile.save_config()
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ['add', 'testclient', str(testfiles / "test.torrent")], catch_exceptions=False)
+    assert result.exit_code == 1
+
+
+def test_cli_inaccessible_store_path(testfiles, indexer, matcher, client, configfile, tmp_path):
+    store_path = tmp_path / "inaccessible"
+    store_path.mkdir(mode=0o000)
+    try:
+        configfile.config["autotorrent"]["store_path"] = str(store_path / "{torrent_name}")
+        configfile.save_config()
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ['scan', '-p', str(testfiles)], catch_exceptions=False)
+        assert result.exit_code == 0
+        result = runner.invoke(cli, ['add', 'testclient', str(testfiles / "test.torrent")], catch_exceptions=False)
+        assert result.exit_code == 0
+    finally:
+        store_path.chmod(0o777)

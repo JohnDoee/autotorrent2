@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.] - 2022-06-
+
+### Change
+
+- Verifying store_path has at least one variable as it otherwise will use weird paths #12
+
+### Bugfix
+
+- Catching permission error, not-a-directory error on add related to store_path #12
+
 ## [1.2.0] - 2022-06-18
 
 ### Add

@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import os
+import re
 import shlex
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -442,6 +443,12 @@ def add(
         f"Matching {len(torrent_paths)} torrent{len(torrent_paths) != 1 and 's' or ''}"
     )
 
+    if not exact and not re.findall(r"\{[^\}]+\}", ctx.obj["store_path"]):
+        click.echo(
+            f"Store path does not contain any variables and therefore will be the same for each torrent."
+        )
+        quit(1)
+
     stats = {"seeded": 0, "added": 0, "exists": 0, "failed": 0, "missing_files": 0}
     for torrent_path in torrent_paths:
         torrent_path = Path(torrent_path)
@@ -558,7 +565,25 @@ def add(
                         add_status_formatter(
                             "exists",
                             torrent_path,
-                            "the link folder already exist this torrent is not seeded by the client",
+                            "the link folder already exist but this torrent is not seeded by the client",
+                        )
+                        continue
+                    except NotADirectoryError as e:
+                        logger.debug(f"Failed to create path: {e}")
+                        stats["failed"] += 1
+                        add_status_formatter(
+                            "failed",
+                            torrent_path,
+                            "store path is not a folder",
+                        )
+                        continue
+                    except PermissionError as e:
+                        logger.debug(f"Failed to create path: {e}")
+                        stats["failed"] += 1
+                        add_status_formatter(
+                            "failed",
+                            torrent_path,
+                            "permissions on the store path restrict the ability to create links",
                         )
                         continue
                 else:
