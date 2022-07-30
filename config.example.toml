@@ -47,6 +47,8 @@ add_limit_percent = 5
 # Where to store links, supports the following variables:
 #   client - the key found in the [clients] section, e.g. 'the-transmission' for [clients.the-transmission]
 #   torrent_name - torrent filename, e.g. /path/to/a.good.file.torrent is a.good.file
+#   torrent_source - source key from torrent, will throw an error if it does not exist in torrent
+#   tracker_domain - base domain for the tracker
 store_path = "/mnt/store_path/{client}/{torrent_name}"
 
 # Cache files that are touched, useful with e.g. if the source is a read-only filesystem.

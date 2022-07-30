@@ -3,6 +3,7 @@ import pytest
 import libtc
 
 from click.testing import CliRunner
+from libtc import bdecode, bencode
 from pathlib import Path
 
 from autotorrent.__main__ import cli
@@ -150,3 +151,56 @@ def test_cli_inaccessible_store_path(testfiles, indexer, matcher, client, config
         assert result.exit_code == 0
     finally:
         store_path.chmod(0o777)
+
+
+
+def test_cli_store_path_passed_variables(testfiles, indexer, matcher, client, configfile, tmp_path):
+    store_path = tmp_path.resolve() / "store_path"
+    configfile.config["autotorrent"]["store_path"] = str(store_path / "{custom_variable}"/ "{torrent_name}")
+    configfile.save_config()
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ['scan', '-p', str(testfiles)], catch_exceptions=False)
+    assert result.exit_code == 0
+    result = runner.invoke(cli, ['add', 'testclient', '--store-path-variable', 'custom_variable=smart-choice', '--store-path-variable', 'unused=something', str(testfiles / "test.torrent")], catch_exceptions=False)
+    assert result.exit_code == 0
+
+    assert (store_path / "smart-choice" / "test").exists()
+
+
+def test_cli_store_path_inferred_variables(testfiles, indexer, matcher, client, configfile, tmp_path):
+    torrent_data = bdecode((testfiles / "test.torrent").read_bytes())
+    torrent_data[b"info"][b"source"] = b"real-source"
+    torrent_data[b"announce"] = b"http://example.com/horse?example=1"
+    (testfiles / "test.torrent").write_bytes(bencode(torrent_data))
+
+    store_path = tmp_path.resolve() / "store_path"
+    configfile.config["autotorrent"]["store_path"] = str(store_path / "{tracker_domain}" / "{torrent_source}" / "{torrent_name}")
+    configfile.save_config()
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ['scan', '-p', str(testfiles)], catch_exceptions=False)
+    assert result.exit_code == 0
+    result = runner.invoke(cli, ['add', 'testclient', '--store-path-variable', 'custom_variable=smart-choice', '--store-path-variable', 'unused=something', str(testfiles / "test.torrent")], catch_exceptions=False)
+    assert result.exit_code == 0
+
+    assert (store_path / "example.com" / "real-source" / "test").exists()
+
+
+def test_cli_store_path_missing_in_torrent_variables(testfiles, indexer, matcher, client, configfile, tmp_path):
+    torrent_data = bdecode((testfiles / "test.torrent").read_bytes())
+    torrent_data[b"announce"] = b"http://example.com/horse?example=1"
+    (testfiles / "test.torrent").write_bytes(bencode(torrent_data))
+
+    store_path = tmp_path.resolve() / "store_path"
+    configfile.config["autotorrent"]["store_path"] = str(store_path / "{tracker_domain}" / "{torrent_source}" / "{torrent_name}")
+    configfile.save_config()
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ['scan', '-p', str(testfiles)], catch_exceptions=False)
+    assert result.exit_code == 0
+    result = runner.invoke(cli, ['add', 'testclient', '--store-path-variable', 'torrent_source=other-source', '--store-path-variable', 'unused=something', str(testfiles / "test.torrent")], catch_exceptions=False)
+    assert result.exit_code == 0
+
+    assert (store_path / "example.com" / "other-source" / "test").exists()
+# test_cli_store_path_missing_in_torrent_fallback_variables

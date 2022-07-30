@@ -2,6 +2,10 @@
 
 ## [1.2.] - 2022-06-
 
+### Add
+
+- Support for more custom variables used in store_path, both from torrent and cli #28
+
 ### Change
 
 - Verifying store_path has at least one variable as it otherwise will use weird paths #12

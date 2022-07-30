@@ -350,7 +350,7 @@ class Pieces:
 
 class Torrent(
     namedtuple(
-        "Torrent", ["name", "size", "piece_length", "filelist", "filelist_mapped"]
+        "Torrent", ["name", "size", "piece_length", "filelist", "filelist_mapped", "trackers"]
     )
 ):
     def is_problematic(self):
@@ -611,7 +611,14 @@ def parse_torrent(
         length += info[b"length"]
 
     filelist_mapped = {f.path: f for f in filelist}
-    return Torrent(name, length, info[b"piece length"], filelist, filelist_mapped)
+
+    trackers = [torrent.get(b"announce", b"").decode()]
+    for tracker in torrent.get(b"announce-list", []):
+        tracker = tracker.decode()
+        if tracker not in trackers:
+            trackers.append(trackers)
+    trackers = [t for t in trackers if t]
+    return Torrent(name, length, info[b"piece length"], filelist, filelist_mapped, trackers)
 
 
 CreateLinkResult = namedtuple(

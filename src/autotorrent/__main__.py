@@ -15,6 +15,7 @@ from libtc import (
     bencode,
     parse_clients_from_toml_dict,
 )
+from libtc.utils import get_tracker_domain
 
 from .__version__ import __version__
 from .db import Database
@@ -360,6 +361,16 @@ def rm(ctx, client, path):
             client.remove(infohash)
 
 
+def validate_store_path_variable(ctx, param, value):
+    result = []
+    for kw in value:
+        k, _, v = kw.partition("=")
+        if not v:
+            raise click.BadParameter("format must be 'key=value'")
+        result.append((k, v))
+    return result
+
+
 @cli.command(help="Add new torrents to a client.")
 @click.argument("client", type=str)
 @click.option(
@@ -407,6 +418,18 @@ def rm(ctx, client, path):
     flag_value=True,
     default=False,
 )
+@click.option(
+    "-t",
+    "--store-path-template",
+    help='Pass a custom template instead of using the one defined in the config file.',
+)
+@click.option(
+    "-v",
+    "--store-path-variable",
+    help='Variable used for store path using a key=value syntax.',
+    callback=validate_store_path_variable,
+    multiple=True,
+)
 @click.argument("torrent", nargs=-1, type=click.Path(exists=True, dir_okay=False))
 @click.pass_context  # TODO: allow feedback while running
 def add(
@@ -421,6 +444,8 @@ def add(
     dry_run,
     move_torrent_on_add,
     stopped,
+    store_path_template,
+    store_path_variable,
 ):
     torrent_paths = torrent
     client_name = client
@@ -434,6 +459,8 @@ def add(
         raise click.BadParameter(f"Unknown client: {client_name}")
     client = client["client"]
     existing_torrents = {t.infohash: t for t in client.list()}
+    store_path_variables = dict(store_path_variable)
+    store_path = store_path_template or ctx.obj["store_path"]
 
     if not client:
         click.echo(f"Client {client_name} not found found")
@@ -443,7 +470,7 @@ def add(
         f"Matching {len(torrent_paths)} torrent{len(torrent_paths) != 1 and 's' or ''}"
     )
 
-    if not exact and not re.findall(r"\{[^\}]+\}", ctx.obj["store_path"]):
+    if not exact and not re.findall(r"\{[^\}]+\}", store_path):
         click.echo(
             f"Store path does not contain any variables and therefore will be the same for each torrent."
         )
@@ -451,6 +478,7 @@ def add(
 
     stats = {"seeded": 0, "added": 0, "exists": 0, "failed": 0, "missing_files": 0}
     for torrent_path in torrent_paths:
+        torrent_store_path_variables = dict(store_path_variables)
         torrent_path = Path(torrent_path)
         try:
             torrent_data = bdecode(torrent_path.read_bytes())
@@ -459,6 +487,10 @@ def add(
             add_status_formatter("failed", torrent_path, "failed to parse torrent file")
             stats["failed"] += 1
             continue
+        if torrent.trackers:
+            torrent_store_path_variables["tracker_domain"] = re.sub(r"[\\/]", "_", get_tracker_domain(torrent.trackers[0]))
+        if b"source" in torrent_data[b"info"]:
+            torrent_store_path_variables["torrent_source"] = re.sub(r"[\\/]", "_", torrent_data[b"info"][b"source"].decode())
         if torrent.has_file_patterns(ctx.obj["ignore_file_patterns"]):
             add_status_formatter(
                 "failed",
@@ -545,11 +577,11 @@ def add(
 
                     try:
                         create_link_result = create_link_path(
-                            ctx.obj["store_path"],
+                            store_path,
                             link_file_mapping,
                             client_name,
                             torrent_path,
-                            {},
+                            torrent_store_path_variables,
                             ctx.obj["link_type"],
                             rw_cache=rw_cache,
                             chown_str=chown,
