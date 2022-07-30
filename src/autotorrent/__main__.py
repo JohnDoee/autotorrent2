@@ -421,12 +421,12 @@ def validate_store_path_variable(ctx, param, value):
 @click.option(
     "-t",
     "--store-path-template",
-    help='Pass a custom template instead of using the one defined in the config file.',
+    help="Pass a custom template instead of using the one defined in the config file.",
 )
 @click.option(
     "-v",
     "--store-path-variable",
-    help='Variable used for store path using a key=value syntax.',
+    help="Variable used for store path using a key=value syntax.",
     callback=validate_store_path_variable,
     multiple=True,
 )
@@ -488,9 +488,13 @@ def add(
             stats["failed"] += 1
             continue
         if torrent.trackers:
-            torrent_store_path_variables["tracker_domain"] = re.sub(r"[\\/]", "_", get_tracker_domain(torrent.trackers[0]))
+            torrent_store_path_variables["tracker_domain"] = re.sub(
+                r"[\\/]", "_", get_tracker_domain(torrent.trackers[0])
+            )
         if b"source" in torrent_data[b"info"]:
-            torrent_store_path_variables["torrent_source"] = re.sub(r"[\\/]", "_", torrent_data[b"info"][b"source"].decode())
+            torrent_store_path_variables["torrent_source"] = re.sub(
+                r"[\\/]", "_", torrent_data[b"info"][b"source"].decode()
+            )
         if torrent.has_file_patterns(ctx.obj["ignore_file_patterns"]):
             add_status_formatter(
                 "failed",
