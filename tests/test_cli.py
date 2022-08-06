@@ -172,6 +172,7 @@ def test_cli_store_path_inferred_variables(testfiles, indexer, matcher, client, 
     torrent_data = bdecode((testfiles / "test.torrent").read_bytes())
     torrent_data[b"info"][b"source"] = b"real-source"
     torrent_data[b"announce"] = b"http://example.com/horse?example=1"
+    torrent_data[b"announce-list"] = [[b"http://example.com/horse?example=3", b"http://example.com/horse?example=2"]]
     (testfiles / "test.torrent").write_bytes(bencode(torrent_data))
 
     store_path = tmp_path.resolve() / "store_path"
@@ -203,4 +204,4 @@ def test_cli_store_path_missing_in_torrent_variables(testfiles, indexer, matcher
     assert result.exit_code == 0
 
     assert (store_path / "example.com" / "other-source" / "test").exists()
-# test_cli_store_path_missing_in_torrent_fallback_variables
+

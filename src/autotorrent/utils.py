@@ -614,10 +614,13 @@ def parse_torrent(
     filelist_mapped = {f.path: f for f in filelist}
 
     trackers = [torrent.get(b"announce", b"").decode()]
-    for tracker in torrent.get(b"announce-list", []):
-        tracker = tracker.decode()
-        if tracker not in trackers:
-            trackers.append(trackers)
+    for tracker_group in torrent.get(b"announce-list", []):
+        if not isinstance(tracker_group, list):
+            tracker_group = [tracker_group]
+        for tracker in tracker_group:
+            tracker = tracker.decode()
+            if tracker not in trackers:
+                trackers.append(trackers)
     trackers = [t for t in trackers if t]
     return Torrent(
         name, length, info[b"piece length"], filelist, filelist_mapped, trackers
