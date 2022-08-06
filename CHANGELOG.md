@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.2] - 2022-08-06
+
+### Bugfix
+
+- Announce-list was not parsed correctly #31
+
 ## [1.2.1] - 2022-07-30
 
 ### Add
