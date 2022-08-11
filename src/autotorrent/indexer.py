@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
 from fnmatch import fnmatch
 from pathlib import Path
-from queue import SimpleQueue
+from queue import Empty, SimpleQueue
 
 from .db import InsertTorrentFile
 from .utils import get_root_of_unsplitable, is_unsplitable
@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 INSERT_QUEUE_MAX_SIZE = 1000
 
+SCAN_PATH_QUEUE_TIMEOUT_SECONDS = 10
 
 class IndexAction(Enum):
     ADD = 1
@@ -30,21 +31,31 @@ class Indexer:
             self.db.truncate_files()
         paths = [Path(p) for p in paths]
         queue = SimpleQueue()
-        live_thread_count = 0
+        futures = {}
+
         with ThreadPoolExecutor(max_workers=len(paths) + 1) as executor:
             for path in paths:
                 logger.info(f"Indexing path {path}")
-                executor.submit(self._scan_path_thread, path, queue, root_thread=True)
-                live_thread_count += 1
+                futures[str(path)] = executor.submit(self._scan_path_thread, path, queue, root_thread=True)
 
-            while live_thread_count:
-                action, args = queue.get()
+            while len(futures):
+                action, args = None, ()
+                try:
+                    action, args = queue.get(timeout=SCAN_PATH_QUEUE_TIMEOUT_SECONDS)
+                except Empty:
+                    logger.debug("No action received from queue in %d seconds, checking threads", SCAN_PATH_QUEUE_TIMEOUT_SECONDS)
+                    for path in list(futures):
+                        future = futures[path]
+                        if future.done():
+                            if future.exception() is not None:
+                                logger.error(f"Thread for path {path} encountered an exception: {future.exception()}")
+                            del futures[path]
                 if action == IndexAction.ADD:
                     self.db.insert_file_path(*args)
                 elif action == IndexAction.MARK_UNSPLITABLE:
                     self.db.mark_unsplitable_root(*args)
                 elif action == IndexAction.FINISHED:
-                    live_thread_count -= 1
+                    del futures[args]
 
         self.db.commit()
 
@@ -63,27 +74,30 @@ class Indexer:
 
     def _scan_path_thread(self, path, queue, root_thread=False):
         files = []
-        for p in path.iterdir():
-            if p.is_dir():
-                if self._match_ignore_pattern(
-                    self.ignore_directory_patterns, p, ignore_case=True
-                ):
-                    continue
-                self._scan_path_thread(p, queue)
-            elif p.is_file():
-                if self._match_ignore_pattern(self.ignore_file_patterns, p):
-                    continue
-                files.append(p)
-                size = p.stat().st_size
-                queue.put((IndexAction.ADD, (p, size)))
+        try:
+            for p in path.iterdir():
+                if p.is_dir():
+                    if self.ignore_directory_patterns and self._match_ignore_pattern(
+                        self.ignore_directory_patterns, p, ignore_case=True
+                    ):
+                        continue
+                    self._scan_path_thread(p, queue)
+                elif p.is_file():
+                    if self.ignore_file_patterns and self._match_ignore_pattern(self.ignore_file_patterns, p):
+                        continue
+                    files.append(p)
+                    size = p.stat().st_size
+                    queue.put((IndexAction.ADD, (p, size)))
 
-        # TODO: probably not utf-8 problems resilient
-        if is_unsplitable(files):  # TODO: prevent duplicate work (?)
-            unsplitable_root = get_root_of_unsplitable(path)
-            queue.put((IndexAction.MARK_UNSPLITABLE, (unsplitable_root,)))
+            # TODO: probably not utf-8 problems resilient
+            if is_unsplitable(files):  # TODO: prevent duplicate work (?)
+                unsplitable_root = get_root_of_unsplitable(path)
+                queue.put((IndexAction.MARK_UNSPLITABLE, (unsplitable_root,)))
+        except OSError as e:
+            logger.error(f"Failed to scan {path}: {e}")
 
         if root_thread:
-            queue.put((IndexAction.FINISHED, ()))
+            queue.put((IndexAction.FINISHED, (str(path))))
 
     def scan_clients(self, clients, full_scan=False, fast_scan=False):
         for name, client in clients.items():
