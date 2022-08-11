@@ -205,3 +205,13 @@ def test_cli_store_path_missing_in_torrent_variables(testfiles, indexer, matcher
 
     assert (store_path / "example.com" / "other-source" / "test").exists()
 
+def test_cli_inaccessible_scan_path(testfiles, indexer, matcher, client, configfile, tmp_path):
+    inaccessible_test_file = testfiles / "inaccessible"
+    inaccessible_test_file.mkdir(mode=0o000)
+    # (testfiles / "inaccessible" / "testit.txt").write_text("test")
+    try:
+        runner = CliRunner()
+        result = runner.invoke(cli, ['scan', '-p', str(testfiles)], catch_exceptions=False)
+        assert result.exit_code == 0
+    finally:
+        inaccessible_test_file.chmod(0o777)
