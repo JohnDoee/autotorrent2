@@ -1,5 +1,11 @@
 # Changelog
 
+## [] - 2022-08-
+
+### Bugfix
+
+- Scan stalls when an exception occures #34
+
 ## [1.2.2] - 2022-08-06
 
 ### Bugfix
