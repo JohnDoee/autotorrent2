@@ -484,6 +484,7 @@ def add(
             torrent_data = bdecode(torrent_path.read_bytes())
             torrent = parse_torrent(torrent_data, utf8_compat_mode=db.utf8_compat_mode)
         except (BTFailure, FailedToParseTorrentException):
+            logger.exception("Failed to parse torrent file")
             add_status_formatter("failed", torrent_path, "failed to parse torrent file")
             stats["failed"] += 1
             continue
