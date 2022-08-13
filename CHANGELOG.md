@@ -9,6 +9,7 @@
 ### Change
 
 - Exception logger on failed torrent parse #36
+- Bumped libtc version to qbittorrent tag support version #33
 
 ### Bugfix
 
