@@ -25,10 +25,14 @@ jobs:
 
     - run: pip install . pyinstaller
     - run: pyinstaller pyinstaller/autotorrent.spec
+    - run: cd dist && tar -czvf ../pyinstaller-${{ matrix.os }}.tar.gz *
+      if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest' }}
+    - run: cd dist && zip -r ../pyinstaller-${{ matrix.os }}.zip *
+      if: ${{ matrix.os == 'windows-latest' }}
     - uses: actions/upload-artifact@v3
       with:
         name: pyinstaller-${{ matrix.os }}
-        path: dist/*
+        path: pyinstaller-${{ matrix.os }}.*
 
   build-shiv:
     runs-on: ubuntu-latest

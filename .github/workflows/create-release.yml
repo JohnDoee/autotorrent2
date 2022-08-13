@@ -1,0 +1,38 @@
+name: Create release
+
+# Only trigger, when the build workflow succeeded
+on:
+  workflow_run:
+    workflows: ["Build artifacts"]
+    types:
+      - completed
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download shiv
+        uses: actions/download-artifact@v3
+        with:
+          name: zipapp-shiv
+      - name: Download pyinstaller linux
+        uses: actions/download-artifact@v3
+        with:
+          name: pyinstaller-ubuntu-latest
+      - name: Download pyinstaller macos
+        uses: actions/download-artifact@v3
+        with:
+          name: pyinstaller-macos-latest
+      - name: Download pyinstaller windows
+        uses: actions/download-artifact@v3
+        with:
+          name: pyinstaller-windows-latest
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body: TODO
+          files: |
+            at2.pyz
+            pyinstaller-linux-latest.tar.gz
+            pyinstaller-macos-latest.tar.gz
+            pyinstaller-windows-latest.tar.gz

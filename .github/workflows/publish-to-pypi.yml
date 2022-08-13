@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-andn-publish:
+  build-and-publish:
     name: Build and publish Python
     runs-on: ubuntu-latest
     steps:
