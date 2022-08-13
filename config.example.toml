@@ -51,6 +51,10 @@ add_limit_percent = 5
 #   tracker_domain - base domain for the tracker
 store_path = "/mnt/store_path/{client}/{torrent_name}"
 
+# Skip various metadata store in the store_folder when creating links
+# Disabling this makes it impossible for autotorrent to trace back what a link folder contains
+skip_store_metadata = false
+
 # Cache files that are touched, useful with e.g. if the source is a read-only filesystem.
 # Torrent clients need write access to the source data if pieces are missing that overlap with existing files.
 cache_touched_files = false

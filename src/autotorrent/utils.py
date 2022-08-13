@@ -688,6 +688,7 @@ def create_link_path(
     rw_cache=None,
     chown_str=None,
     dry_run=False,
+    skip_store_metadata=False,
 ):
     kwargs = {
         "client": client_name,
@@ -707,14 +708,19 @@ def create_link_path(
     except FileExistsError:
         raise FailedToCreateLinkException(f"Path {store_path} already exist")
 
-    data_store_path = store_path / STORE_DATA_PATH
-    data_store_path.mkdir()
+    if skip_store_metadata:
+        data_store_path = store_path
+        torrent_store_path = None
+        autotorrent_store_path = None
+    else:
+        data_store_path = store_path / STORE_DATA_PATH
+        data_store_path.mkdir()
 
-    torrent_store_path = store_path / torrent_file_path.name
-    shutil.copy(torrent_file_path, torrent_store_path)
+        torrent_store_path = store_path / torrent_file_path.name
+        shutil.copy(torrent_file_path, torrent_store_path)
 
-    autotorrent_store_path = store_path / AUTOTORRENT_CONF_NAME
-    autotorrent_store_path.write_text(json.dumps({}))
+        autotorrent_store_path = store_path / AUTOTORRENT_CONF_NAME
+        autotorrent_store_path.write_text(json.dumps({}))
 
     for torrent_path, (action, actual_path) in file_mapping.items():
         link_path = data_store_path / torrent_path

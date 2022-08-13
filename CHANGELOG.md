@@ -2,6 +2,14 @@
 
 ## [] - 2022-08-
 
+### Add
+
+- Possible to disable metadata in store path #32
+
+### Change
+
+- Exception logger on failed torrent parse #36
+
 ### Bugfix
 
 - Scan stalls when an exception occures #34

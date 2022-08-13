@@ -213,3 +213,30 @@ def test_cli_inaccessible_scan_path(testfiles, indexer, matcher, client, configf
         assert result.exit_code == 0
     finally:
         inaccessible_test_file.chmod(0o777)
+
+def test_cli_add_skip_store_metadata_disabled(testfiles, indexer, matcher, client, configfile, tmp_path):
+    configfile.config["autotorrent"]["skip_store_metadata"] = False
+    configfile.save_config()
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ['scan', '-p', str(testfiles)], catch_exceptions=False)
+    assert result.exit_code == 0
+    result = runner.invoke(cli, ['add', 'testclient', str(testfiles / "test.torrent")], catch_exceptions=False)
+    assert result.exit_code == 0
+    action, kwargs = client._action_queue[0]
+    assert action == "add"
+    assert kwargs["destination_path"].name == "data"
+
+
+def test_cli_add_skip_store_metadata_enabled(testfiles, indexer, matcher, client, configfile, tmp_path):
+    configfile.config["autotorrent"]["skip_store_metadata"] = True
+    configfile.save_config()
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ['scan', '-p', str(testfiles)], catch_exceptions=False)
+    assert result.exit_code == 0
+    result = runner.invoke(cli, ['add', 'testclient', str(testfiles / "test.torrent")], catch_exceptions=False)
+    assert result.exit_code == 0
+    action, kwargs = client._action_queue[0]
+    assert action == "add"
+    assert kwargs["destination_path"].name != "data"

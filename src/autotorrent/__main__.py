@@ -60,6 +60,7 @@ same_paths = [ ]
 add_limit_size = 128_000_000
 add_limit_percent = 5
 store_path = "/mnt/store_path/{client}/{torrent_name}"
+skip_store_metadata = false
 cache_touched_files = false
 # rw_file_cache_chown = "1000:1000"
 rw_file_cache_ttl = 86400
@@ -461,6 +462,7 @@ def add(
     existing_torrents = {t.infohash: t for t in client.list()}
     store_path_variables = dict(store_path_variable)
     store_path = store_path_template or ctx.obj["store_path"]
+    skip_store_metadata = ctx.obj.get("skip_store_metadata", False)
 
     if not client:
         click.echo(f"Client {client_name} not found found")
@@ -591,6 +593,7 @@ def add(
                             rw_cache=rw_cache,
                             chown_str=chown,
                             dry_run=dry_run,
+                            skip_store_metadata=skip_store_metadata,
                         )  # TODO: feedback that things take time when caching
                         if dry_run:
                             torrent_root_path = "/tmp/autotorrent_dry_run"
