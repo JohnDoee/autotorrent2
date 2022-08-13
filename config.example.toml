@@ -130,6 +130,7 @@ url = "http://localhost:8080/"
 username = "admin"
 password = "adminadmin"
 session_path = "~/.config/qbittorrent/"
+label = "testlabel"
 
 [clients.deluge-url]
 display_name = "Deluge url"
