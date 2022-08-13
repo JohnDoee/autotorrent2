@@ -128,7 +128,6 @@ def test_cli_add_extreme_limits(testfiles, indexer, matcher, client, configfile,
 
 def test_cli_missing_variable_store_path(testfiles, indexer, matcher, client, configfile, tmp_path):
     store_path = tmp_path / "inaccessible"
-    store_path.mkdir(mode=0o000)
     configfile.config["autotorrent"]["store_path"] = str(tmp_path / "garbage")
     configfile.save_config()
 
@@ -208,7 +207,6 @@ def test_cli_store_path_missing_in_torrent_variables(testfiles, indexer, matcher
 def test_cli_inaccessible_scan_path(testfiles, indexer, matcher, client, configfile, tmp_path):
     inaccessible_test_file = testfiles / "inaccessible"
     inaccessible_test_file.mkdir(mode=0o000)
-    # (testfiles / "inaccessible" / "testit.txt").write_text("test")
     try:
         runner = CliRunner()
         result = runner.invoke(cli, ['scan', '-p', str(testfiles)], catch_exceptions=False)

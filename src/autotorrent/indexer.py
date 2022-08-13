@@ -14,6 +14,7 @@ INSERT_QUEUE_MAX_SIZE = 1000
 
 SCAN_PATH_QUEUE_TIMEOUT_SECONDS = 10
 
+
 class IndexAction(Enum):
     ADD = 1
     MARK_UNSPLITABLE = 2
@@ -36,19 +37,26 @@ class Indexer:
         with ThreadPoolExecutor(max_workers=len(paths) + 1) as executor:
             for path in paths:
                 logger.info(f"Indexing path {path}")
-                futures[str(path)] = executor.submit(self._scan_path_thread, path, queue, root_thread=True)
+                futures[str(path)] = executor.submit(
+                    self._scan_path_thread, path, queue, root_thread=True
+                )
 
             while len(futures):
                 action, args = None, ()
                 try:
                     action, args = queue.get(timeout=SCAN_PATH_QUEUE_TIMEOUT_SECONDS)
                 except Empty:
-                    logger.debug("No action received from queue in %d seconds, checking threads", SCAN_PATH_QUEUE_TIMEOUT_SECONDS)
+                    logger.debug(
+                        "No action received from queue in %d seconds, checking threads",
+                        SCAN_PATH_QUEUE_TIMEOUT_SECONDS,
+                    )
                     for path in list(futures):
                         future = futures[path]
                         if future.done():
                             if future.exception() is not None:
-                                logger.error(f"Thread for path {path} encountered an exception: {future.exception()}")
+                                logger.error(
+                                    f"Thread for path {path} encountered an exception: {future.exception()}"
+                                )
                             del futures[path]
                 if action == IndexAction.ADD:
                     self.db.insert_file_path(*args)
@@ -83,7 +91,9 @@ class Indexer:
                         continue
                     self._scan_path_thread(p, queue)
                 elif p.is_file():
-                    if self.ignore_file_patterns and self._match_ignore_pattern(self.ignore_file_patterns, p):
+                    if self.ignore_file_patterns and self._match_ignore_pattern(
+                        self.ignore_file_patterns, p
+                    ):
                         continue
                     files.append(p)
                     size = p.stat().st_size
