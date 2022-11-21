@@ -747,7 +747,7 @@ def create_link(actual_path, link_path, link_type):
     elif link_type == "hard":
         os.link(actual_path, link_path)
     elif link_type == "reflink":
-        reflink(str(link_path), str(actual_path))
+        reflink(str(actual_path), str(link_path))
 
 
 def reflink(path, destination):
@@ -774,7 +774,7 @@ def reflink(path, destination):
         raise Exception("reflink is not supported")
 
 
-def _reflink_linux(self, path, destination):
+def _reflink_linux(path, destination):
     """
     Linux only reflink via syscall FICLONE on supported filesystems
     """
