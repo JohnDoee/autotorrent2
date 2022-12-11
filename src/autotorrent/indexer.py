@@ -1,4 +1,5 @@
 import logging
+import os
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
 from fnmatch import fnmatch
@@ -15,6 +16,65 @@ INSERT_QUEUE_MAX_SIZE = 1000
 SCAN_PATH_QUEUE_TIMEOUT_SECONDS = 10
 
 
+class PathTrieNode:
+    __slots__ = ("children", "is_file", "is_unsplitable", "size")
+
+    def __init__(self):
+        self.children = {}
+        self.is_file = False  # In a typical string-based trie, this would mark the end of the string
+        self.is_unsplitable = False
+        self.size = None
+
+
+class PathTrie:
+    def __init__(self):
+        self.root = PathTrieNode()
+
+    def insert_path(self, path, size):
+        current = self.root
+        for segment in path.parts:
+            ch = segment
+            node = current.children.get(ch)
+            if node is None:
+                node = PathTrieNode()
+                current.children.update({ch: node})
+            current = node
+        current.is_file = True
+        current.size = size
+
+    def mark_unsplitable(self, path):
+        current = self.root
+        for segment in path.parts:
+            current = current.children.get(segment)
+        current.is_unsplitable = True
+
+    def walk(self, func):
+        """Recursively walk the entire tree, applying `func` to all end
+        nodes (which will always be a files)"""
+        return self._walk_node(self.root, func, "", None)
+
+    def _walk_node(self, node, func, current_path, unsplitable_root):
+        """Provides the recursivity needed to actually walk the tree"""
+        directories = []
+        files = []
+        for name, child in node.children.items():
+            if child.is_file:
+                files.append((name, child))
+            else:
+                directories.append((name, child))
+        # Descend directory-first to ensure unsplittable roots are applied properly
+        for name, child in directories:
+            unsplitable_root_for_children = unsplitable_root
+            new_path = Path(current_path, name)
+            if child.is_unsplitable and unsplitable_root is None:
+                unsplitable_root_for_children = new_path
+            yield from self._walk_node(
+                child, func, new_path, unsplitable_root_for_children
+            )
+        for name, child in files:
+            yield func(child, Path(current_path, name), unsplitable_root)
+
+
 class IndexAction(Enum):
     ADD = 1
     MARK_UNSPLITABLE = 2
@@ -28,9 +88,8 @@ class Indexer:
         self.ignore_directory_patterns = ignore_directory_patterns or []
 
     def scan_paths(self, paths, full_scan=True):
-        if full_scan:
-            self.db.truncate_files()
         paths = [Path(p) for p in paths]
+        path_tree = PathTrie()
         queue = SimpleQueue()
         futures = {}
 
@@ -59,12 +118,20 @@ class Indexer:
                                 )
                             del futures[path]
                 if action == IndexAction.ADD:
-                    self.db.insert_file_path(*args)
+                    path_tree.insert_path(*args)
                 elif action == IndexAction.MARK_UNSPLITABLE:
-                    self.db.mark_unsplitable_root(*args)
+                    path_tree.mark_unsplitable(*args)
                 elif action == IndexAction.FINISHED:
                     del futures[args]
 
+        # Helper function to modify walk results for DB usage
+        def db_insert(child, full_path, unsplitable_root):
+            return (str(full_path), child.size, str(unsplitable_root))
+
+        self.db.commit()
+        if full_scan:
+            self.db.truncate_files()
+        self.db.insert_file_paths(path_tree.walk(db_insert))
         self.db.commit()
 
     def _match_ignore_pattern(self, ignore_patterns, p, ignore_case=False):
