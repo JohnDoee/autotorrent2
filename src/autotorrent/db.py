@@ -81,9 +81,9 @@ class Database:
         def create_insert(args):
             path, size, unsplitable_root = args
             unsplitable_root = str(unsplitable_root)
-            decoded_path = decode_str(str(path), try_fix=self.utf8_compat_mode)
+            decoded_path = decode_str(os.fsencode(path), try_fix=self.utf8_compat_mode)
             if decoded_path is None:
-                return
+                return None
             name_path, name = os.path.split(decoded_path)
             normalized_name = normalize_filename(name)
             logger.debug(
@@ -95,7 +95,7 @@ class Database:
         try:
             c.executemany(
                 "INSERT OR IGNORE INTO files (name, path, size, normalized_name, unsplitable_root) VALUES (?, ?, ?, ?, ?)",
-                map(create_insert, iterable),
+                [row for row in map(create_insert, iterable) if row is not None],
             )
         finally:
             c.close()
