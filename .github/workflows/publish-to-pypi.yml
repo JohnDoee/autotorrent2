@@ -12,11 +12,17 @@ jobs:
   build-and-publish:
     name: Build and publish Python
     runs-on: ubuntu-latest
+    environment:
+      name: autotorrent2
+      url: https://pypi.org/p/autotorrent2
+    permissions:
+      id-token: write
+      contents: read
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: 3.9
+          python-version: '3.11'
       - name: Install pypa/build
         run: >-
           python -m
@@ -31,5 +37,3 @@ jobs:
           --outdir dist/
       - name: Publish distribution
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
