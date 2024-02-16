@@ -8,8 +8,6 @@ from .utils import decode_str, normalize_filename
 
 logger = logging.getLogger(__name__)
 
-COMMIT_COUNT = 10000
-
 SeededFile = namedtuple(
     "SeededFile", ["name", "path", "download_path", "infohash", "client", "size"]
 )
@@ -74,44 +72,40 @@ class Database:
 
     def commit(self):
         self.db.commit()
-        self._insert_counter = 0
 
-    def check_commit(self):
-        self._insert_counter += 1
-        if self._insert_counter >= COMMIT_COUNT:
-            self.commit()
+    def insert_file_paths(self, iterable):
+        """Take an interable that generates a tuple with the three
+        fields defined in `create_insert` and normalize them for
+        insertion into the DB"""
 
-    def insert_file_path(self, path, size):
-        decoded_path = decode_str(path, try_fix=self.utf8_compat_mode)
-        if decoded_path is None:
-            return
-        name_path, name = os.path.split(decoded_path)
-        normalized_name = normalize_filename(name)
-        logger.debug(
-            f"Inserting name: {name!r} name_path: {name_path!r} size: {size} normalized_name: {normalized_name!r}"
-        )
+        def create_insert(args):
+            path, size, unsplitable_root = args
+            unsplitable_root = str(unsplitable_root)
+            decoded_path = decode_str(os.fsencode(path), try_fix=self.utf8_compat_mode)
+            if decoded_path is None:
+                return None
+            name_path, name = os.path.split(decoded_path)
+            normalized_name = normalize_filename(name)
+            logger.debug(
+                f"Inserting name: {name!r} name_path: {name_path!r} size: {size} normalized_name: {normalized_name!r}  unsplitable_root {unsplitable_root!r}"
+            )
+            return (name, name_path, size, normalized_name, unsplitable_root)
+
         c = self.db.cursor()
-        c.execute(
-            "INSERT OR IGNORE INTO files (name, path, size, normalized_name) VALUES (?, ?, ?, ?)",
-            (name, name_path, size, normalized_name),
-        )
-        self.check_commit()
-
-    def mark_unsplitable_root(self, path):
-        decoded_path = decode_str(path, try_fix=self.utf8_compat_mode)
-        if decoded_path is None:
-            return
-        c = self.db.cursor()
-        c.execute(
-            "UPDATE files SET unsplitable_root = ? WHERE path = ? OR path LIKE ?",
-            (decoded_path, decoded_path, f"{decoded_path}{os.sep}%"),
-        )
-        self.check_commit()
+        try:
+            c.executemany(
+                "INSERT OR IGNORE INTO files (name, path, size, normalized_name, unsplitable_root) VALUES (?, ?, ?, ?, ?)",
+                [row for row in map(create_insert, iterable) if row is not None],
+            )
+        finally:
+            c.close()
 
     def truncate_files(self):
         c = self.db.cursor()
-        c.execute("DELETE FROM files")
-        self.db.commit()
+        try:
+            c.execute("DELETE FROM files")
+        finally:
+            c.close()
 
     def search_file(
         self,
