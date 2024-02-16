@@ -55,6 +55,22 @@ If your torrent data is located in /mnt/data outside docker then you should map 
 
 Personally I recommend mounting your data source as read-only because bittorrent clients are write-happy that might corrupt your data.
 
+## Docker usage
+
+There is a docker image published automatically now.
+
+Basic usage:
+
+```bash
+docker run -ti --rm -v ${PWD}/autotorrent.db:autotorrent.db -v ${PWD}/config.toml:config.toml ghcr.io/johndoee/autotorrent2:master check-config
+```
+
+Cron usage, check config every 5 minute.
+
+```bash
+docker run -ti --rm -v ${PWD}/autotorrent.db:autotorrent.db -v ${PWD}/config.toml:config.toml ghcr.io/johndoee/autotorrent2:master cron '*/5 * * * *' check-config
+```
+
 ## Todo
 
 Assortment of stuff that is planned.
