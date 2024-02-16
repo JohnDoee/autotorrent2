@@ -14,6 +14,7 @@
 ### Bugfix
 
 - Scan stalls when an exception occures #34
+- Making sure all trackers are bytes, fixing #48
 
 ## [1.2.2] - 2022-08-06
 

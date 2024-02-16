@@ -618,6 +618,8 @@ def parse_torrent(
         if not isinstance(tracker_group, list):
             tracker_group = [tracker_group]
         for tracker in tracker_group:
+            if not isinstance(tracker, bytes):
+                continue
             tracker = tracker.decode()
             if tracker not in trackers:
                 trackers.append(trackers)
