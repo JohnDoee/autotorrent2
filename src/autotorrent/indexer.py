@@ -150,21 +150,21 @@ class Indexer:
     def _scan_path_thread(self, path, queue, root_thread=False):
         files = []
         try:
-            for p in path.iterdir():
+            for p in os.scandir(path):
                 if p.is_dir():
                     if self.ignore_directory_patterns and self._match_ignore_pattern(
-                        self.ignore_directory_patterns, p, ignore_case=True
+                        self.ignore_directory_patterns, Path(p), ignore_case=True
                     ):
                         continue
-                    self._scan_path_thread(p, queue)
+                    self._scan_path_thread(Path(p), queue)
                 elif p.is_file():
                     if self.ignore_file_patterns and self._match_ignore_pattern(
-                        self.ignore_file_patterns, p
+                        self.ignore_file_patterns, Path(p)
                     ):
                         continue
-                    files.append(p)
+                    files.append(Path(p))
                     size = p.stat().st_size
-                    queue.put((IndexAction.ADD, (p, size)))
+                    queue.put((IndexAction.ADD, (Path(p), size)))
 
             # TODO: probably not utf-8 problems resilient
             if is_unsplitable(files):  # TODO: prevent duplicate work (?)
