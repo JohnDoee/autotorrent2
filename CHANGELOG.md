@@ -14,6 +14,7 @@
 ### Bugfix
 
 - reflink never actually worked #40 (Thanks undrog)
+- Using prefix tree when inserting into sqlite for more efficiency #41 (thanks kannibalox)
 
 ## [1.2.3] - 2022-08-13
 
