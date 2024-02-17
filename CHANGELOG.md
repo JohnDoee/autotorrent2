@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.3.0] - 2024-02-17
+
+### Add
+
+- Dockerfile and docker support #51 (thanks kannibalox)
+
+### Change
+
+- Moved to os.scanfile for more efficient disk scanning #45 (thanks kannibalox)
+- Using prefix tree when inserting into sqlite for more efficiency #41 (thanks kannibalox)
+
+### Bugfix
+
+- reflink never actually worked #40 (Thanks undrog)
+
 ## [1.2.3] - 2022-08-13
 
 ### Add

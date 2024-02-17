@@ -83,7 +83,7 @@ Assortment of stuff that is planned.
 
 Assortment of stuff I am not sure I can do much about.
 
-- [ ] Transmission (3.x) does not parse all emojis correctly and will return the wrong filename. [This is fixed in Transmission 4.0.2.](https://github.com/transmission/transmission/pull/5096).
+- [ ] Transmission (3.x) does not parse all emojis correctly and will return the wrong filename. [This is fixed in Transmission 4.0.2.](https://github.com/transmission/transmission/pull/5096)
 
 ## License
 
