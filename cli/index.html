@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>CLI Reference - Autotorrent2</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "CLI Reference";
+        var mkdocs_page_input_path = "cli.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <script src="../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Autotorrent2
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../usage/">Usage</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="./">CLI Reference</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#at2">at2</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#at2-add">add</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#at2-check-config">check-config</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#at2-cleanup-cache">cleanup-cache</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#at2-find-unseeded">find-unseeded</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#at2-ls">ls</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#at2-rm">rm</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#at2-scan">scan</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#at2-scan-clients">scan-clients</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#at2-test-connection">test-connection</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Autotorrent2</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" alt="Docs"></a> &raquo;</li><li>CLI Reference</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="cli-reference">CLI Reference</h1>
+<p>This page provides documentation for the commandline.</p>
+<h2 id="at2">at2</h2>
+<p><strong>Usage:</strong></p>
+<pre><code>at2 [OPTIONS] COMMAND [ARGS]...
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code>  -c, --config FILE       Path to config file
+  -v, --verbose           Verbose logging
+  -u, --utf8-compat-mode  Try work around utf-8 errors, not recommended
+  --version               Show the version and exit.
+  --help                  Show this message and exit.
+</code></pre>
+<h3 id="at2-add">at2 add</h3>
+<p>Add new torrents to a client.</p>
+<p><strong>Usage:</strong></p>
+<pre><code>at2 add [OPTIONS] CLIENT [TORRENT]...
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code>  -e, --exact                     Exact matching mode. Can also be considered
+                                  a &quot;reseed&quot; mode. Disables all other modes.
+  -s, --hash-probe                Probe matched files for full pieces to
+                                  ensure the data matches.
+  -a, --hash-size                 Hash size matching mode, checks for files
+                                  with same size but different filenames.
+  --print-summary                 Print a summary of all actions when done.
+  --chown TEXT                    Chown the data folder when creating links.
+  --dry-run                       Do not actually create links and add the
+                                  torrents, just check what would happen.
+  --move-torrent-on-add PATH      Move the torrent to this path after it has
+                                  been added successfully to the client.
+  --stopped                       Add the torrent in stopped state.
+  -t, --store-path-template TEXT  Pass a custom template instead of using the
+                                  one defined in the config file.
+  -v, --store-path-variable TEXT  Variable used for store path using a
+                                  key=value syntax.
+  --help                          Show this message and exit.
+</code></pre>
+<h3 id="at2-check-config">at2 check-config</h3>
+<p>Checks if the config file exists and is loadable.</p>
+<p><strong>Usage:</strong></p>
+<pre><code>at2 check-config [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code>  --help  Show this message and exit.
+</code></pre>
+<h3 id="at2-cleanup-cache">at2 cleanup-cache</h3>
+<p>Cleanup RW cache for expired items.</p>
+<p><strong>Usage:</strong></p>
+<pre><code>at2 cleanup-cache [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code>  --help  Show this message and exit.
+</code></pre>
+<h3 id="at2-find-unseeded">at2 find-unseeded</h3>
+<p>Find unseeded paths.</p>
+<p><strong>Usage:</strong></p>
+<pre><code>at2 find-unseeded [OPTIONS] [PATH]...
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code>  -e, --escape-paths  Escape the output paths
+  --help              Show this message and exit.
+</code></pre>
+<h3 id="at2-ls">at2 ls</h3>
+<p>See what is seeded for a given path.</p>
+<p><strong>Usage:</strong></p>
+<pre><code>at2 ls [OPTIONS] [PATH]...
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code>  -s, --summary        End the listing with a summary
+  -d, --depth INTEGER
+  --help               Show this message and exit.
+</code></pre>
+<h3 id="at2-rm">at2 rm</h3>
+<p>Remove all torrents seeding data from a path. Does not delete the actual data.</p>
+<p><strong>Usage:</strong></p>
+<pre><code>at2 rm [OPTIONS] PATH...
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code>  -l, --client TEXT  Remove from a specific client
+  --help             Show this message and exit.
+</code></pre>
+<h3 id="at2-scan">at2 scan</h3>
+<p>Scan your local paths files.</p>
+<p><strong>Usage:</strong></p>
+<pre><code>at2 scan [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code>  -p, --path PATH  Partial scan a given path, does not remove removed files
+                   from the database.
+  --help           Show this message and exit.
+</code></pre>
+<h3 id="at2-scan-clients">at2 scan-clients</h3>
+<p>Scan your clients for files.</p>
+<p><strong>Usage:</strong></p>
+<pre><code>at2 scan-clients [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code>  -l, --client TEXT  Scan a specific client
+  -f, --full         Clear old data and do a full scan
+  -a, --fast         Run a fast scan, does not detect moved torrents.
+                     Overwritten by full
+  --help             Show this message and exit.
+</code></pre>
+<h3 id="at2-test-connection">at2 test-connection</h3>
+<p>Test your connection to your clients.</p>
+<p><strong>Usage:</strong></p>
+<pre><code>at2 test-connection [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<pre><code>  -l, --client TEXT  Check a specific client
+  --help             Show this message and exit.
+</code></pre>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../usage/" class="btn btn-neutral float-left" title="Usage"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../usage/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+  </span>
+</div>
+    <script>var base_url = '..';</script>
+    <script src="../js/theme_extra.js" defer></script>
+    <script src="../js/theme.js" defer></script>
+      <script src="../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>

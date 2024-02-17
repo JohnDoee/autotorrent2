@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Usage - Autotorrent2</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Usage";
+        var mkdocs_page_input_path = "usage.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <script src="../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Autotorrent2
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="./">Usage</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#torrent-add">Torrent add</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#commands">Commands:</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#config-fields">Config fields:</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#torrent-reseed">Torrent reseed</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#commands_1">Commands:</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#config-fields_1">Config fields:</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#find-seeded-and-unseeded-files">Find seeded and unseeded files</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#commands_2">Commands:</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#torrent-removal">Torrent removal</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#commands_3">Commands:</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#test-configuration">Test configuration</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#commands_4">Commands:</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#torrent-discovery">Torrent discovery</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI Reference</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Autotorrent2</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" alt="Docs"></a> &raquo;</li><li>Usage</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="usage">Usage</h1>
+<p>A number of common use-cases and how to handle them are described here. For the exhaustive feature list check out the CLI.</p>
+<h2 id="torrent-add">Torrent add</h2>
+<h6 id="commands">Commands:</h6>
+<ul>
+<li>at2 add</li>
+<li>at2 scan</li>
+<li>at2 cleanup-cache</li>
+</ul>
+<h6 id="config-fields">Config fields:</h6>
+<ul>
+<li>link_type</li>
+<li>always_verify_hash</li>
+<li>paths</li>
+<li>same_paths</li>
+<li>add_limit_size</li>
+<li>add_limit_percent</li>
+<li>store_path</li>
+<li>cache_touched_files</li>
+<li>rw_file_cache_ttl</li>
+<li>rw_file_cache_path</li>
+</ul>
+<p>Match torrents with data on your disk, where every torrent starts its life. First we have to <code>at2 scan</code> to discover files Autotorrent2 can match against.
+Our ubuntu isos are now indexed and we can add them to a torrent client. The client we are using is called transmission-ubuntu.</p>
+<p><code>at2 add transmission-ubuntu ubuntu-20.04.torrent</code> - it turns out the torrent is a little bit different as it has an .nfo file and transmission will need to write part of a piece to ubuntu-20.04.iso.
+The file is read-only because it is owned by a different user and therefore it is cached locally. It can be pointed back to the original file AFTER transmission is done writing to the cached file.</p>
+<p>Autotorrent2 supports caching files which can be enabled and disabled with the <code>cache_touched_files</code> setting.</p>
+<p>The time is now <code>rw_file_cache_ttl</code> seconds later and we want to cleanup the cache, i.e. re-link files with the original file instead of having multiple copies of the same file indefinitely. Run <code>at2 cleanup-cache</code> and the file is gone from the cache.</p>
+<h2 id="torrent-reseed">Torrent reseed</h2>
+<h6 id="commands_1">Commands:</h6>
+<ul>
+<li>at2 add</li>
+<li>at2 scan</li>
+</ul>
+<h6 id="config-fields_1">Config fields:</h6>
+<ul>
+<li>always_verify_hash</li>
+<li>paths</li>
+<li>same_paths</li>
+</ul>
+<p>New computer, new seedbox, new something. You want to reseed the old torrents and you have all the torrents and all the data available. Edit <code>paths</code> to the correct paths, run <code>at2 scan</code> to index your data.</p>
+<p>With the data indexed you are ready to add the torrents with <code>at2 add -e *.torrent</code> - the <code>-e</code> option is the exact match mode, aka. reseed mode.</p>
+<h2 id="find-seeded-and-unseeded-files">Find seeded and unseeded files</h2>
+<h6 id="commands_2">Commands:</h6>
+<ul>
+<li>at2 ls</li>
+<li>at2 find-unseeded</li>
+<li>at2 scan-clients</li>
+</ul>
+<p>For one reason or another, you have removed torrents from your client but not deleted the files on disk. This can be for multiple reasons, e.g. the files might be in use for cross-seeding purposes.</p>
+<p>First we scan the clients with <code>at2 scan-clients</code> so we have a local index of all the seeded files. It takes the filelist from the clients and saves it.</p>
+<p>Now we can do <code>at2 ls</code> to see what is seeded in the current folder. While it is interesting to see how much is seeded the practical purpose is to find the exact files not seeded.</p>
+<p>This can be done with <code>at2 find-unseeded /mnt/data/torrent-data/</code> which will spit out the paths not seeded.</p>
+<p>A common trick is to do is use -e option and rm like: <code>at2 find-unseeded -e /mnt/data/torrent-data/ | xargs rm -r --</code> WARNING: make sure the clients are recently scanned and the output without the rm part looks correct as this command just deletes files.</p>
+<h2 id="torrent-removal">Torrent removal</h2>
+<h6 id="commands_3">Commands:</h6>
+<ul>
+<li>at2 rm</li>
+<li>at2 scan-clients</li>
+</ul>
+<p>The normal process for removing data is to do it from the torrent client, these commands can help you do it the other way and remove from multiple clients at once.</p>
+<p>Like with ls we need to <code>at2 scan-clients</code> first to have an up-to-date local list of seeded files. Run <code>at2 rm /path/to/torrent</code> to remove everything seeded in that path directly or indirectly, i.e. linked files too. No torrents left hanging.</p>
+<h2 id="test-configuration">Test configuration</h2>
+<h6 id="commands_4">Commands:</h6>
+<ul>
+<li>at2 check-config</li>
+<li>at2 test-connection</li>
+</ul>
+<p>Sometimes you want to check if what you are doing is correct and working.
+The two commands list can test this easily.</p>
+<h2 id="torrent-discovery">Torrent discovery</h2>
+<p>Command: TODO</p>
+<p>This feature is not implemented yet but you can look at some of the other tools while you wait.</p>
+<p>With the original autotorrent you would have to go out and find the potential torrents you would want to seed. This works for some flows but people just want stuff found and seeded.</p>
+<p>There has been a huge resurgance in this exact field with tools like <a href="https://github.com/mmgoodnow/cross-seed">mmgoodnow/cross-seed</a>, <a href="https://github.com/BC44/Cross-Seed-AutoDL">BC44/Cross-Seed-AutoDL</a>, <a href="https://github.com/boban-bmw/cross-seedarr">boban-bmw/cross-seedarr</a>, <a href="https://github.com/ccf-2012/seedcross">ccf-2012/seedcross</a> and (my own) <a href="https://github.com/JohnDoee/flexget-cross-seed">JohnDoee/flexget-cross-seed</a>.</p>
+<p>The listed tools have an air of impreciseness around them, if files cannot be easily discovered via external search tools.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href=".." class="btn btn-neutral float-left" title="Home"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../cli/" class="btn btn-neutral float-right" title="CLI Reference">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href=".." style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../cli/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '..';</script>
+    <script src="../js/theme_extra.js" defer></script>
+    <script src="../js/theme.js" defer></script>
+      <script src="../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>
