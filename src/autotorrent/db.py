@@ -13,7 +13,8 @@ SeededFile = namedtuple(
 )
 
 InsertTorrentFile = namedtuple(
-    "InsertTorrentFile", ["infohash", "name", "download_path", "paths"]
+    "InsertTorrentFile",
+    ["infohash", "name", "download_path", "paths"],
 )
 
 
@@ -67,6 +68,13 @@ class Database:
             size integer NOT NULL,
             UNIQUE(path, torrent_id)
         )"""
+        )
+        try:
+            c.execute("""ALTER TABLE client_torrentfiles ADD COLUMN inode INTEGER""")
+        except sqlite3.OperationalError:
+            pass
+        c.execute(
+            """CREATE INDEX IF NOT EXISTS client_torrentfiles_inode ON client_torrentfiles (inode)"""
         )
         self.db.commit()
 
@@ -217,15 +225,17 @@ class Database:
 
         for itf in insert_torrent_files:
             insert_args = []
-            for path, size in itf.paths:
+            for path, size, inode in itf.paths:
                 path = decode_str(path, try_fix=self.utf8_compat_mode)
                 if path is None:
                     continue
 
-                insert_args.append((infohash_id_mapping[itf.infohash], path, size))
+                insert_args.append(
+                    (infohash_id_mapping[itf.infohash], path, size, inode)
+                )
 
             c.executemany(
-                "INSERT OR IGNORE INTO client_torrentfiles (torrent_id, path, size) VALUES (?, ?, ?)",
+                "INSERT OR IGNORE INTO client_torrentfiles (torrent_id, path, size, inode) VALUES (?, ?, ?, ?)",
                 insert_args,
             )
         self.commit()
@@ -266,16 +276,77 @@ class Database:
             ],
         )
 
-    def get_seeded_paths(self, paths):
+    def get_seeded_paths(self, paths, inodes):
         c = self.db.cursor()
         c.execute(
-            f"""SELECT name, download_path, infohash, client, path, size FROM client_torrentfiles
+            f"""SELECT client_torrentfiles.torrent_id, name, download_path, infohash, client, path, size FROM client_torrentfiles
                       LEFT JOIN client_torrents ON client_torrents.id = client_torrentfiles.torrent_id
                       WHERE path IN ({','.join(['?'] * len(paths))})""",
             [decode_str(p, try_fix=self.utf8_compat_mode) for p in paths],
         )
 
+        seeded_files = []
+        indirect_seeded_files = []
+        seen_files = set()
+
+        for (
+            torrent_id,
+            name,
+            download_path,
+            infohash,
+            client,
+            path,
+            size,
+        ) in c.fetchall():
+            seeded_files.append(
+                SeededFile(name, Path(path), download_path, infohash, client, size)
+            )
+            seen_files.add((torrent_id, client, path))
+
+        if inodes:
+            c.execute(
+                f"""SELECT client_torrentfiles.torrent_id, inode, name, download_path, infohash, client, path, size FROM client_torrentfiles
+                        LEFT JOIN client_torrents ON client_torrents.id = client_torrentfiles.torrent_id
+                        WHERE inode IN ({','.join(['?'] * len(inodes))})""",
+                list(inodes.keys()),
+            )
+            for (
+                torrent_id,
+                inode,
+                name,
+                download_path,
+                infohash,
+                client,
+                path,
+                size,
+            ) in c.fetchall():
+                if (torrent_id, client, path) in seen_files:
+                    continue
+                seen_files.add((torrent_id, client, path))
+                full_path = Path(path)
+                if not full_path.is_file():
+                    continue
+                stat = full_path.stat()
+                for p, dev in inodes[inode]:
+                    if dev == stat.st_dev:
+                        indirect_seeded_files.append(
+                            SeededFile(name, p, download_path, infohash, client, size)
+                        )
+                        break
+        return seeded_files, indirect_seeded_files
+
+    def get_seeded_infohashes(self, client):
+        c = self.db.cursor()
+        c.execute(
+            f"""SELECT infohash, name, sum(size), count(*)
+                    FROM client_torrents
+                    LEFT JOIN client_torrentfiles ON client_torrents.id = client_torrentfiles.torrent_id
+                        AND client_torrentfiles.path LIKE (client_torrents.download_path || '%')
+                    WHERE client = ?
+                    GROUP BY infohash, name""",
+            (client,),
+        )
+
         return [
-            SeededFile(name, Path(path), download_path, infohash, client, size)
-            for (name, download_path, infohash, client, path, size) in c.fetchall()
+            (infohash, name, size, count) for (infohash, size, count) in c.fetchall()
         ]

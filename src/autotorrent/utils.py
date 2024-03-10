@@ -6,13 +6,13 @@ import os
 import platform
 import re
 import shutil
+import sqlite3
 from collections import namedtuple
 from fnmatch import fnmatch
 from pathlib import Path, PurePath
 
 import chardet
 import click
-from libtc import TorrentProblems
 
 from .exceptions import FailedToCreateLinkException, FailedToParseTorrentException
 
@@ -489,7 +489,7 @@ class Torrent(
                     if (
                         inner_piece_status
                         and all(inner_piece_status)
-                        and all([p != False for p in edge_piece_status])
+                        and all([p is not False for p in edge_piece_status])
                     ):
                         file_status_mapping[torrent_file] = "hash-success"
                     elif not inner_piece_status and all(edge_piece_status):
@@ -879,3 +879,78 @@ def add_status_formatter(status, torrent_path, message):
 
     status_msg = f"[{click.style(status_spec[1], fg=status_spec[0])}]"
     click.echo(f" {status_msg:18s} {torrent_path.name!r} {message}")
+
+
+def filter_torrents(client, torrents_or_infohashes, query):
+    """Extract all infohashes from client, filter them against sqlite query and torrents variable."""
+
+    db = sqlite3.connect(":memory:")
+    c = db.cursor()
+    c.execute(
+        """CREATE TABLE torrents (
+        infohash TEXT UNIQUE,
+        name TEXT,
+        size INTEGER,
+        state TEXT,
+        progress REAL,
+        uploaded INTEGER,
+        added DATETIME,
+        tracker TEXT,
+        upload_rate INTEGER,
+        download_rate INTEGER,
+        label TEXT,
+
+        ratio REAL,
+        complete BOOL
+    )"""
+    )
+    db.commit()
+
+    torrents = client.list()
+    while torrents:
+        c.executemany(
+            "INSERT INTO torrents VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                (
+                    t.infohash,
+                    t.name,
+                    t.size,
+                    t.state,
+                    t.progress,
+                    t.uploaded,
+                    t.added,
+                    t.tracker,
+                    t.upload_rate,
+                    t.download_rate,
+                    t.label,
+                    (
+                        t.progress > 0
+                        and (t.uploaded / ((t.progress * t.size) / 100))
+                        or None
+                    ),
+                    t.progress == 100.0,
+                )
+                for t in torrents[:500]
+            ],
+        )
+        torrents = torrents[500:]
+
+    infohashes = set(
+        [
+            infohash
+            for (infohash,) in c.execute(
+                f"SELECT infohash FROM torrents WHERE {query}"
+            ).fetchall()
+        ]
+    )
+    return [
+        torrents_or_infohash
+        for torrents_or_infohash in torrents_or_infohashes
+        if (
+            isinstance(torrents_or_infohash, str) and torrents_or_infohash in infohashes
+        )
+        or (
+            hasattr(torrents_or_infohash, "infohash")
+            and torrents_or_infohash.infohash in infohashes
+        )
+    ]

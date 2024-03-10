@@ -14,8 +14,10 @@ from .utils import (
 
 MatchedFile = namedtuple("MatchedFile", ["torrent_file", "searched_files"])
 MatchResult = namedtuple("MatchResult", ["root_path", "matched_files", "size"])
-MappedFile = namedtuple("MappedFile", ["size", "clients"])
-MapResult = namedtuple("MapResult", ["total_size", "seeded_size", "files"])
+MappedFile = namedtuple("MappedFile", ["size", "clients", "indirect_clients"])
+MapResult = namedtuple(
+    "MapResult", ["total_size", "seeded_size", "indirect_seeded_size", "files"]
+)
 DynamicMatchResult = namedtuple(
     "DynamicMatchResult", ["success", "missing_size", "matched_files", "touched_files"]
 )
@@ -35,9 +37,10 @@ def is_relative_to(path, *other):
 
 
 class Matcher:
-    def __init__(self, rewriter, db):
+    def __init__(self, rewriter, db, include_inodes=False):
         self.rewriter = rewriter
         self.db = db
+        self.include_inodes = include_inodes
 
     def _match_filelist_exact(
         self,
@@ -247,14 +250,14 @@ class Matcher:
         for match_result in candidates:
             candidate_result = {}
             for matched_file in match_result.matched_files:
-                candidate_result[
-                    matched_file.torrent_file.path
-                ] = self._match_best_file(
-                    torrent,
-                    matched_file.torrent_file,
-                    matched_file.searched_files,
-                    hash_probe=hash_probe,
-                    match_hash_size=match_hash_size,
+                candidate_result[matched_file.torrent_file.path] = (
+                    self._match_best_file(
+                        torrent,
+                        matched_file.torrent_file,
+                        matched_file.searched_files,
+                        hash_probe=hash_probe,
+                        match_hash_size=match_hash_size,
+                    )
                 )
             evaluated_candidates.append(candidate_result)
         return sorted(
@@ -435,19 +438,34 @@ class Matcher:
 
         def flush_check_queue():
             logger.debug("Flushing queue")
+            path_inodes = {}
             for p in path_check_queue:
                 resolved_p = p.resolve()
-                size = p.stat().st_size
+                stat = p.stat()
+                size = stat.st_size
+                if self.include_inodes:
+                    if stat.st_ino not in path_inodes:
+                        path_inodes[stat.st_ino] = []
+                    path_inodes[stat.st_ino].append((p, stat.st_dev))
                 if resolved_p not in real_files_seen:
                     total["size"] += size
                     real_files_seen.add(resolved_p)
 
                 real_files_mapping[p] = resolved_p
-                path_seeded[p] = MappedFile(size=size, clients=[])
+                path_seeded[p] = MappedFile(size=size, clients=[], indirect_clients=[])
 
-            for seeded_file in self.db.get_seeded_paths(path_check_queue):
+            seeded_files, indirect_seeded_files = self.db.get_seeded_paths(
+                path_check_queue, path_inodes
+            )
+
+            for seeded_file in seeded_files:
                 path_seeded[seeded_file.path].clients.append(
                     (seeded_file.client, seeded_file.infohash)
+                )
+
+            for indirect_seeded_file in indirect_seeded_files:
+                path_seeded[indirect_seeded_file.path].indirect_clients.append(
+                    (indirect_seeded_file.client, indirect_seeded_file.infohash)
                 )
 
             path_check_queue.clear()
@@ -480,6 +498,7 @@ class Matcher:
         looper(path)
         flush_check_queue()
         seeded_size = 0
+        indirect_seeded_size = 0
         already_counted_paths = set()
         for p, mapped_file in path_seeded.items():
             if not mapped_file.clients:
@@ -492,6 +511,20 @@ class Matcher:
             already_counted_paths.add(resolved_p)
             seeded_size += mapped_file.size
 
+        for p, mapped_file in path_seeded.items():
+            if not mapped_file.indirect_clients:
+                continue
+
+            resolved_p = real_files_mapping[p]
+            if resolved_p in already_counted_paths:
+                continue
+
+            already_counted_paths.add(resolved_p)
+            indirect_seeded_size += mapped_file.size
+
         return MapResult(
-            total_size=total["size"], seeded_size=seeded_size, files=path_seeded
+            total_size=total["size"],
+            seeded_size=seeded_size,
+            indirect_seeded_size=indirect_seeded_size,
+            files=path_seeded,
         )

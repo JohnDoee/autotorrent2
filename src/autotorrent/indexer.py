@@ -82,7 +82,12 @@ class IndexAction(Enum):
 
 
 class Indexer:
-    def __init__(self, db, ignore_file_patterns=None, ignore_directory_patterns=None):
+    def __init__(
+        self,
+        db,
+        ignore_file_patterns=None,
+        ignore_directory_patterns=None,
+    ):
         self.db = db
         self.ignore_file_patterns = ignore_file_patterns or []
         self.ignore_directory_patterns = ignore_directory_patterns or []
@@ -186,6 +191,10 @@ class Indexer:
     def _scan_client(self, client_name, client, fast_scan):
         torrents = client.list()
         insert_queue = []
+
+        def get_file_inode(path):
+            return path.stat().st_ino
+
         for torrent in torrents:
             _, current_download_path = self.db.get_torrent_file_info(
                 client_name, torrent.infohash
@@ -209,10 +218,11 @@ class Indexer:
             paths = []
             for f in files:
                 f_path = download_path / f.path
-                paths.append((str(f_path), f.size))
+                inode = get_file_inode(f_path)
+                paths.append((str(f_path), f.size, inode))
                 f_path_resolved = f_path.resolve()
                 if f_path_resolved != f_path:
-                    paths.append((str(f_path_resolved), f.size))
+                    paths.append((str(f_path_resolved), f.size, inode))
             insert_queue.append(
                 InsertTorrentFile(torrent.infohash, torrent.name, download_path, paths)
             )

@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased] -
+
+### Add
+
+- Way to find torrents in a client not seeded from specified paths
+- Hardlink (inode) support for several commands and features
+- Query support for several commands that interact with already seeding torrents
+
 ## [1.3.0] - 2024-02-17
 
 ### Add

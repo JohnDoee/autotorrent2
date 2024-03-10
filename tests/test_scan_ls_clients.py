@@ -270,7 +270,10 @@ def test_multiple_clients(tmp_path, indexer, matcher, client, client2):
     )
 
 
-def test_symlink(tmp_path, indexer, matcher, client, client2, client3):
+@pytest.mark.parametrize("include_inodes", [False, True])
+def test_symlink(tmp_path, indexer, matcher, client, client2, client3, include_inodes):
+    indexer.include_inodes = include_inodes
+    matcher.include_inodes = include_inodes
     infohash = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
     name = "test torrent 1"
     download_path = tmp_path / "test torrent 1"
@@ -477,3 +480,154 @@ def test_rewrite(tmp_path, rewriter, indexer, matcher, client):
     assert len(map_result.files) == 2
     for mf in map_result.files.values():
         assert len(mf.clients) == 0
+
+
+@pytest.mark.parametrize("include_inodes", [False, True])
+def test_hardlink(tmp_path, indexer, matcher, client, client2, client3, include_inodes):
+    indexer.include_inodes = include_inodes
+    matcher.include_inodes = include_inodes
+    infohash = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+    name = "test torrent 1"
+    download_path = tmp_path / "test torrent 1"
+    files = []
+    size = 0
+    seeded_files = [("file1", 400, True), ("file2", 600, True)]
+    for fn, fsize, add_to_files in seeded_files:
+        fp = download_path / Path(fn)
+        fp.parent.mkdir(parents=True, exist_ok=True)
+        fp.write_bytes(b"a" * fsize)
+        if add_to_files:
+            size += fsize
+            files.append(TorrentFile(fn, fsize, 100))
+
+    client._inject_torrent(
+        TorrentData(
+            infohash,
+            name,
+            size,
+            TorrentState.ACTIVE,
+            100,
+            1000,
+            datetime(2020, 1, 1, 1, 1),
+            "example.com",
+            0,
+            0,
+            None,
+        ),
+        files,
+        download_path,
+    )
+
+    download_path_symlink = tmp_path / "test torrent 2"
+    download_path_symlink.symlink_to(download_path)
+
+    download_path_hardlink_files = tmp_path / "test torrent 3"
+    download_path_hardlink_files.mkdir()
+    (download_path_hardlink_files / "file1").hardlink_to(download_path_symlink / "file1")
+    (download_path_hardlink_files / "file2").hardlink_to(download_path_symlink / "file2")
+    indexer.scan_clients({"test_client": client}, full_scan=False, fast_scan=False)
+
+    map_result = matcher.map_path_to_clients(download_path)
+    assert map_result.seeded_size == 1000
+    assert len(map_result.files) == 2
+    for mf in map_result.files.values():
+        assert len(mf.clients) == 1
+
+    map_result = matcher.map_path_to_clients(download_path_symlink)
+    assert map_result.seeded_size == 0
+    assert map_result.total_size == 1000
+    assert len(map_result.files) == 2
+    for f, mf in map_result.files.items():
+        assert len(mf.clients) == 0
+
+    map_result = matcher.map_path_to_clients(download_path_hardlink_files)
+    assert map_result.seeded_size == 0
+    assert map_result.total_size == 1000
+    assert len(map_result.files) == 2
+    for f, mf in map_result.files.items():
+        assert len(mf.clients) == 0
+
+    client2._inject_torrent(
+        TorrentData(
+            infohash,
+            name,
+            size,
+            TorrentState.ACTIVE,
+            100,
+            1000,
+            datetime(2020, 1, 1, 1, 1),
+            "example.com",
+            0,
+            0,
+            None,
+        ),
+        files,
+        download_path_symlink,
+    )
+
+    indexer.scan_clients({"test_client2": client2, "test_client3": client3}, full_scan=False, fast_scan=False)
+
+    map_result = matcher.map_path_to_clients(download_path)
+    assert map_result.seeded_size == 1000
+    assert len(map_result.files) == 2
+    for mf in map_result.files.values():
+        assert len(mf.clients) == 2
+        assert sorted(mf.clients) == sorted(
+            [
+                ("test_client", "da39a3ee5e6b4b0d3255bfef95601890afd80709"),
+                ("test_client2", "da39a3ee5e6b4b0d3255bfef95601890afd80709"),
+            ]
+        )
+        if include_inodes:
+            assert sorted(mf.indirect_clients) == sorted(
+                [
+                    ("test_client2", "da39a3ee5e6b4b0d3255bfef95601890afd80709"),
+                ]
+            )
+            assert len(mf.indirect_clients) == 1
+        else:
+            assert len(mf.indirect_clients) == 0
+
+
+    map_result = matcher.map_path_to_clients(download_path_symlink)
+    assert map_result.seeded_size == 1000
+    assert map_result.total_size == 1000
+    assert len(map_result.files) == 2
+    for f, mf in map_result.files.items():
+        assert len(mf.clients) == 1
+
+    map_result = matcher.map_path_to_clients(download_path_hardlink_files)
+    assert map_result.seeded_size == 0
+    if include_inodes:
+        assert map_result.indirect_seeded_size == 1000
+    else:
+        assert map_result.indirect_seeded_size == 0
+    assert map_result.total_size == 1000
+    assert len(map_result.files) == 2
+
+    client3._inject_torrent(
+        TorrentData(
+            infohash,
+            name,
+            size,
+            TorrentState.ACTIVE,
+            100,
+            1000,
+            datetime(2020, 1, 1, 1, 1),
+            "example.com",
+            0,
+            0,
+            None,
+        ),
+        files,
+        download_path_hardlink_files,
+    )
+
+    indexer.scan_clients({"test_client3": client3}, full_scan=False, fast_scan=False)
+
+    map_result = matcher.map_path_to_clients(download_path_hardlink_files)
+    assert map_result.seeded_size == 1000
+    assert map_result.total_size == 1000
+    assert len(map_result.files) == 2
+    for f, mf in map_result.files.items():
+        assert len(mf.clients) == 1

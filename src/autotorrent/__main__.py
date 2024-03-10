@@ -30,6 +30,7 @@ from .utils import (
     create_link_path,
     humanize_bytes,
     parse_torrent,
+    filter_torrents,
 )
 
 DEFAULT_CONFIG_FILE = """[autotorrent]
@@ -45,6 +46,7 @@ rw_file_cache_ttl = 86400
 fast_resume = false
 ignore_file_patterns = [ ]
 ignore_directory_patterns = [ ]
+scan_hardlinks = false
 """
 
 BASE_CONFIG_FILE = """[autotorrent]
@@ -69,6 +71,7 @@ rw_file_cache_path = "/mnt/store_path/cache"
 fast_resume = false
 ignore_file_patterns = [ ]
 ignore_directory_patterns = [ ]
+scan_hardlinks = false
 
 [clients]
 
@@ -87,15 +90,19 @@ def parse_config_file(path, utf8_compat_mode=False):
 
     database_path = path.parent / Path(parsed_config["database_path"])
     parsed_config["db"] = db = Database(
-        database_path, utf8_compat_mode=utf8_compat_mode
+        database_path,
+        utf8_compat_mode=utf8_compat_mode,
     )
     parsed_config["indexer"] = indexer = Indexer(
         db,
         ignore_file_patterns=parsed_config["ignore_file_patterns"],
         ignore_directory_patterns=parsed_config["ignore_directory_patterns"],
+        include_inodes=parsed_config["scan_hardlinks"],
     )
     parsed_config["rewriter"] = rewriter = PathRewriter(parsed_config["same_paths"])
-    parsed_config["matcher"] = matcher = Matcher(rewriter, db)
+    parsed_config["matcher"] = matcher = Matcher(
+        rewriter, db, include_inodes=parsed_config["scan_hardlinks"]
+    )
 
     rw_file_cache_chown = parsed_config.get("rw_file_cache_chown")
 
@@ -191,9 +198,23 @@ def cli(ctx, config, verbose, utf8_compat_mode):
     default=False,
 )
 @click.option("-d", "--depth", type=int, default=0)
+@click.option(
+    "-i",
+    "--include-indirect-seeded",
+    help="Include indirectly seeded files, i.e. hardlinked files. Deleting these files will not make the client stop seeding.",
+    flag_value=True,
+    default=False,
+)
 @click.argument("path", nargs=-1, type=click.Path(exists=True))
 @click.pass_context
-def ls(ctx, summary, depth, path):
+def ls(ctx, summary, depth, include_indirect_seeded, path):
+    if include_indirect_seeded and not ctx.obj["scan_hardlinks"]:
+        raise click.BadOptionUsage(
+            option_name="include_indirect_seeded",
+            message="This option can only be used if scan_hardlinks is enabled in the config.\nRemember to rescan clients afterwards.",
+            ctx=ctx,
+        )
+
     if path:
         paths = [Path(p) for p in path]
     else:
@@ -211,17 +232,17 @@ def ls(ctx, summary, depth, path):
         for path in paths:
             p = Path(os.path.abspath(path))
             map_result = matcher.map_path_to_clients(p)
+            seeded_size = map_result.seeded_size + (
+                include_indirect_seeded and map_result.indirect_seeded_size or 0
+            )
             percent = (
                 map_result.total_size
-                and int((map_result.seeded_size / map_result.total_size) * 100)
+                and int((seeded_size / map_result.total_size) * 100)
                 or 0
             )
-            if (
-                map_result.total_size == map_result.seeded_size
-                and map_result.total_size > 0
-            ):
+            if map_result.total_size == seeded_size and map_result.total_size > 0:
                 color = "green"
-            elif map_result.seeded_size:
+            elif seeded_size:
                 color = "yellow"
                 if percent == 0:
                     percent = 1
@@ -232,7 +253,7 @@ def ls(ctx, summary, depth, path):
 
             stats["count"] += 1
             stats["total_size"] += map_result.total_size
-            stats["total_seed_size"] += map_result.seeded_size
+            stats["total_seed_size"] += seeded_size
 
             click.echo(
                 f"[{click.style((str(percent) + '%').rjust(4), fg=color)}] {os.fsencode(path).decode(errors='replace')}"
@@ -273,9 +294,23 @@ def ls(ctx, summary, depth, path):
     flag_value=True,
     default=False,
 )
+@click.option(
+    "-i",
+    "--include-indirect-seeded",
+    help="Include indirectly seeded files, i.e. hardlinked files. Deleting these files will not make the client stop seeding.",
+    flag_value=True,
+    default=False,
+)
 @click.argument("path", nargs=-1, type=click.Path(exists=True))
 @click.pass_context
-def find_unseeded(ctx, escape_paths, path):
+def find_unseeded(ctx, escape_paths, include_indirect_seeded, path):
+    if include_indirect_seeded and not ctx.obj["scan_hardlinks"]:
+        raise click.BadOptionUsage(
+            option_name="include_indirect_seeded",
+            message="This option can only be used if scan_hardlinks is enabled in the config.\nRemember to rescan clients afterwards.",
+            ctx=ctx,
+        )
+
     if path:
         paths = [Path(p) for p in path]
     else:
@@ -291,7 +326,9 @@ def find_unseeded(ctx, escape_paths, path):
             if f.is_symlink():
                 continue
             ff = f
-            is_seeded = len(mapped_file.clients) > 0
+            is_seeded = len(mapped_file.clients) > 0 or (
+                include_indirect_seeded and len(mapped_file.indirect_clients) > 0
+            )
             while p in ff.parents or p == ff:
                 if not is_seeded and ff in path_seeds:
                     break
@@ -314,6 +351,133 @@ def find_unseeded(ctx, escape_paths, path):
             click.echo(unseeded_path)
 
 
+@cli.command(
+    help="Find torrents not in current paths. This is useful for e.g. the torrent are seeded but not sorted into folders (with links)."
+)
+@click.option(
+    "-s",
+    "--summary",
+    help="End the listing with a summary",
+    flag_value=True,
+    default=False,
+)
+@click.option(
+    "-i",
+    "--include-indirect-seeded",
+    help="Include indirectly seeded files, i.e. hardlinked files. Deleting these files will not make the client stop seeding.",
+    flag_value=True,
+    default=False,
+)
+@click.option(
+    "--remove-from-client",
+    help="Remove the unmoved torrents from clients, i.e. the ones NOT found in path.",
+    flag_value=True,
+    default=False,
+)
+@click.option("-l", "--client", help="Check a specific client", type=str)
+@click.option("-q", "--query", help="SQL query to match against torrents", type=str)
+@click.argument("path", nargs=-1, type=click.Path(exists=True))
+@click.pass_context
+def find_unmoved(
+    ctx, summary, include_indirect_seeded, remove_from_client, client, query, path
+):
+    if include_indirect_seeded and not ctx.obj["scan_hardlinks"]:
+        raise click.BadOptionUsage(
+            option_name="include_indirect_seeded",
+            message="This option can only be used if scan_hardlinks is enabled in the config.\nRemember to rescan clients afterwards.",
+            ctx=ctx,
+        )
+
+    db = ctx.obj["db"]
+    matcher = ctx.obj["matcher"]
+    clients = ctx.obj["clients"]
+    clients = {
+        name: c["client"]
+        for (name, c) in clients.items()
+        if not client or name == client
+    }
+
+    if not clients:
+        click.echo("No clients found")
+        quit(1)
+
+    if path:
+        paths = [Path(p) for p in path]
+    else:
+        paths = Path(".").iterdir()
+
+    found_infohashes = {client_name: set() for client_name in clients.keys()}
+    for path in paths:
+        p = Path(os.path.abspath(path))
+        map_result = matcher.map_path_to_clients(p)
+        for f, mapped_file in map_result.files.items():
+            file_clients = mapped_file.clients
+            if include_indirect_seeded:
+                file_clients += mapped_file.indirect_clients
+            for file_client, infohash in file_clients:
+                if file_client not in clients:
+                    continue
+                found_infohashes[file_client].add(infohash)
+
+    client_stats = {}
+    for client in clients.keys():
+        total_found_count, total_missing_count, total_found_size, total_missing_size = (
+            0,
+            0,
+            0,
+            0,
+        )
+        missing_infohashes = []
+        seeded_infohashes = db.get_seeded_infohashes(client)
+        usable_infohashes = None
+        if query:
+            usable_infohashes = set(filter_torrents(
+                clients[client], [s[0] for s in seeded_infohashes], query
+            ))
+        for infohash, name, size, count in seeded_infohashes:
+            if usable_infohashes is not None and infohash not in usable_infohashes:
+                logger.debug(f"Skipping {infohash} / {name} because it does not match filter")
+                continue
+
+            if infohash in found_infohashes[client]:
+                total_found_count += 1
+                total_found_size += size
+            else:
+                total_missing_count += 1
+                total_missing_size += size
+                missing_infohashes.append((infohash, name))
+
+        client_stats[client] = {
+            "total_found_count": total_found_count,
+            "total_missing_count": total_missing_count,
+            "total_found_size": total_found_size,
+            "total_missing_size": total_missing_size,
+            "missing_infohashes": missing_infohashes,
+        }
+
+    for client, stats in client_stats.items():
+        click.echo(f"Removing {len(stats['missing_infohashes'])} from {client}")
+        for infohash, name in stats["missing_infohashes"]:
+            if remove_from_client:
+                click.echo(f"Removing torrent {infohash} / {name} from {client}")
+                clients[client].remove(infohash)
+            else:
+                click.echo(f"Would remove {name} ({infohash}) from {client}")
+
+    if summary:
+        click.echo("Summary:")
+        for client, stats in client_stats.items():
+            click.echo(f"Client {client}")
+            click.echo(f" Total found:        {stats['total_found_count']}")
+            click.echo(
+                f" Total found size:   {humanize_bytes(stats['total_found_size'])}"
+            )
+            click.echo(f" Total missing:      {stats['total_missing_count']}")
+            click.echo(
+                f" Total missing size: {humanize_bytes(stats['total_missing_size'])}"
+            )
+
+
 @cli.command(help="Checks if the config file exists and is loadable.")
 @click.pass_context
 def check_config(ctx):
@@ -324,9 +488,10 @@ def check_config(ctx):
     help="Remove all torrents seeding data from a path. Does not delete the actual data."
 )
 @click.option("-l", "--client", help="Remove from a specific client", type=str)
+@click.option("-q", "--query", help="SQL query to match against torrents", type=str)
 @click.argument("path", nargs=-1, type=click.Path(exists=True), required=True)
 @click.pass_context
-def rm(ctx, client, path):
+def rm(ctx, client, query, path):
     matcher = ctx.obj["matcher"]
     clients = ctx.obj["clients"]
     clients = {
@@ -348,6 +513,12 @@ def rm(ctx, client, path):
                 if client_name not in clients:
                     continue
                 infohashes_to_remove.setdefault(client_name, set()).add(infohash)
+
+    if query:
+        for client_name, infohashes in list(infohashes_to_remove.items()):
+            infohashes_to_remove[client_name] = set(filter_torrents(
+                clients[client_name], infohashes, query
+            ))
 
     if not infohashes_to_remove:
         click.echo("Nothing found to remove")
@@ -474,7 +645,7 @@ def add(
 
     if not exact and not re.findall(r"\{[^\}]+\}", store_path):
         click.echo(
-            f"Store path does not contain any variables and therefore will be the same for each torrent."
+            "Store path does not contain any variables and therefore will be the same for each torrent."
         )
         quit(1)
 
