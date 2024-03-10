@@ -97,7 +97,6 @@ def parse_config_file(path, utf8_compat_mode=False):
         db,
         ignore_file_patterns=parsed_config["ignore_file_patterns"],
         ignore_directory_patterns=parsed_config["ignore_directory_patterns"],
-        include_inodes=parsed_config["scan_hardlinks"],
     )
     parsed_config["rewriter"] = rewriter = PathRewriter(parsed_config["same_paths"])
     parsed_config["matcher"] = matcher = Matcher(
