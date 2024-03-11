@@ -87,10 +87,12 @@ class Indexer:
         db,
         ignore_file_patterns=None,
         ignore_directory_patterns=None,
+        include_inodes=False,
     ):
         self.db = db
         self.ignore_file_patterns = ignore_file_patterns or []
         self.ignore_directory_patterns = ignore_directory_patterns or []
+        self.include_inodes = include_inodes
 
     def scan_paths(self, paths, full_scan=True):
         paths = [Path(p) for p in paths]
@@ -193,7 +195,10 @@ class Indexer:
         insert_queue = []
 
         def get_file_inode(path):
-            return path.stat().st_ino
+            if self.include_inodes:
+                return path.stat().st_ino
+            else:
+                return -1
 
         for torrent in torrents:
             _, current_download_path = self.db.get_torrent_file_info(
