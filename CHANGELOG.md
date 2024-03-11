@@ -8,6 +8,10 @@
 - Hardlink (inode) support for several commands and features
 - Query support for several commands that interact with already seeding torrents
 
+### Bugfix
+
+- It is now possible to scan single files (again?) #56
+
 ## [1.3.0] - 2024-02-17
 
 ### Add

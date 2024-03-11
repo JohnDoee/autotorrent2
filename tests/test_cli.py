@@ -240,3 +240,9 @@ def test_cli_add_skip_store_metadata_enabled(testfiles, indexer, matcher, client
     action, kwargs = client._action_queue[0]
     assert action == "add"
     assert kwargs["destination_path"].name != "data"
+
+
+def test_cli_scan_single_file(testfiles, indexer, matcher, client, configfile, tmp_path):
+    runner = CliRunner()
+    result = runner.invoke(cli, ['scan', '-p', str(testfiles / 'file_b.txt')], catch_exceptions=False)
+    assert result.exit_code == 0

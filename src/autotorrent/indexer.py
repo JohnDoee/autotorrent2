@@ -156,22 +156,28 @@ class Indexer:
 
     def _scan_path_thread(self, path, queue, root_thread=False):
         files = []
+        def _handle_file(p):
+            if p.is_dir():
+                if self.ignore_directory_patterns and self._match_ignore_pattern(
+                    self.ignore_directory_patterns, Path(p), ignore_case=True
+                ):
+                    return
+                self._scan_path_thread(Path(p), queue)
+            elif p.is_file():
+                if self.ignore_file_patterns and self._match_ignore_pattern(
+                    self.ignore_file_patterns, Path(p)
+                ):
+                    return
+                files.append(Path(p))
+                size = p.stat().st_size
+                queue.put((IndexAction.ADD, (Path(p), size)))
+
         try:
-            for p in os.scandir(path):
-                if p.is_dir():
-                    if self.ignore_directory_patterns and self._match_ignore_pattern(
-                        self.ignore_directory_patterns, Path(p), ignore_case=True
-                    ):
-                        continue
-                    self._scan_path_thread(Path(p), queue)
-                elif p.is_file():
-                    if self.ignore_file_patterns and self._match_ignore_pattern(
-                        self.ignore_file_patterns, Path(p)
-                    ):
-                        continue
-                    files.append(Path(p))
-                    size = p.stat().st_size
-                    queue.put((IndexAction.ADD, (Path(p), size)))
+            if path.is_file():
+                _handle_file(path)
+            else:
+                for p in os.scandir(path):
+                    _handle_file(p)
 
             # TODO: probably not utf-8 problems resilient
             if is_unsplitable(files):  # TODO: prevent duplicate work (?)
