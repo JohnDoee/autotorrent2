@@ -11,6 +11,10 @@ Autotorrent2 does everything you currently miss in your flow.
 * OS: Any, but only tested on linux
 * Python: 3.7+ are the only tested versions, might work with lower 3.x.
 
+## Important Notes
+
+* Not currently compatible with Python 3.12.5. Please see "Known Bugs" for further details.
+
 ## Quickstart guide
 
 Install Autotorrent2
@@ -84,7 +88,7 @@ Assortment of stuff that is planned.
 Assortment of stuff I am not sure I can do much about.
 
 - [ ] Transmission (3.x) does not parse all emojis correctly and will return the wrong filename. [This is fixed in Transmission 4.0.2.](https://github.com/transmission/transmission/pull/5096)
-
+- [ ] The module wrap_socket is deprecated in Python version 3.12.5 so please use Python 3.11.x (Would need to use create_default_context() or SSLContext instead for SSL/TLS functionality to be compatible with Python 3.12.5)
 ## License
 
 MIT
