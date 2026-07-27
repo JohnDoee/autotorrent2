@@ -622,7 +622,7 @@ def parse_torrent(
                 continue
             tracker = tracker.decode()
             if tracker not in trackers:
-                trackers.append(trackers)
+                trackers.append(tracker)
     trackers = [t for t in trackers if t]
     return Torrent(
         name, length, info[b"piece length"], filelist, filelist_mapped, trackers
